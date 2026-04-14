@@ -1,0 +1,849 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PF ERP - Gestion</title>
+    <link rel="icon" href="logo.png" type="image/png">
+    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+    
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="compact">
+
+    <img id="logo-source" src="logo.png" alt="" style="display: none;" crossorigin="anonymous">
+    
+    <datalist id="villes_list">
+        <option value="Perpignan"><option value="Thuir"><option value="Toulouse"><option value="Montpellier"><option value="Paris"><option value="Marseille"><option value="Lyon">
+        <option value="Casablanca"><option value="Rabat"><option value="Tanger"><option value="Fès"><option value="Marrakech"><option value="Oujda"><option value="Nador">
+        <option value="Alger"><option value="Oran"><option value="Constantine"><option value="Annaba"><option value="Tlemcen"><option value="Béjaïa">
+    </datalist>
+    <datalist id="liens_list"><option value="Fils"><option value="Fille"><option value="Époux"><option value="Épouse"><option value="Père"><option value="Mère"><option value="Frère"><option value="Sœur"></datalist>
+    
+    <datalist id="etapes_list">
+        <option value="Mise en bière">
+        <option value="Fermeture du cercueil">
+        <option value="Levée du corps">
+        <option value="Départ du service mortuaire">
+        <option value="Cérémonie Religieuse">
+        <option value="Cérémonie Civile">
+        <option value="Passage à l'église">
+        <option value="Arrivée au Cimetière">
+        <option value="Arrivée au Crématorium">
+        <option value="Inhumation">
+        <option value="Remise de l'urne">
+    </datalist>
+    <datalist id="payeurs_suggestions"></datalist>
+
+    <div id="app-loader" style="position:fixed; inset:0; background:white; z-index:9999; display:flex; justify-content:center; align-items:center;">
+        <div style="text-align:center;">
+            <i class="fas fa-circle-notch fa-spin" style="font-size:3rem; color:#0ea5e9;"></i>
+            <p style="margin-top:10px; color:#64748b; font-weight:600;">Chargement sécurisé...</p>
+        </div>
+    </div>
+
+    <div id="login-screen" class="hidden" style="position:fixed; inset:0; background:#f8fafc; z-index:9000; display:flex; justify-content:center; align-items:center;">
+        <div class="card" style="width:100%; max-width:400px; text-align:center; padding:40px; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);">
+            <img src="logo.png" alt="Logo" style="width:100px; margin-bottom:20px;">
+            <h2 style="margin-bottom:10px; color:#1e293b;">PF SOLIDAIRE</h2>
+            <p style="color:#64748b; margin-bottom:30px;">Accès réservé au personnel</p>
+            
+            <div style="text-align:left; margin-bottom:15px;">
+                <label style="font-size:0.9rem; font-weight:600; color:#334155;">Email</label>
+                <input type="email" id="login-email" placeholder="votre@email.com" style="width:100%; padding:12px; border:1px solid #cbd5e1; border-radius:8px;">
+            </div>
+            
+            <div style="text-align:left; margin-bottom:25px;">
+                <label style="font-size:0.9rem; font-weight:600; color:#334155;">Mot de passe</label>
+                <input type="password" id="login-password" placeholder="••••••••" style="width:100%; padding:12px; border:1px solid #cbd5e1; border-radius:8px;">
+            </div>
+
+            <button id="btn-login" class="btn btn-green" style="width:100%; justify-content:center; padding:12px; font-size:1rem; font-weight:bold;">
+                <i class="fas fa-sign-in-alt"></i> SE CONNECTER
+            </button>
+            
+            <div style="margin-top:20px;">
+                <a href="#" id="btn-forgot" style="color:#0ea5e9; font-size:0.9rem; text-decoration:none; font-weight:500;">Mot de passe oublié ?</a>
+            </div>
+        </div>
+    </div>
+
+    <nav class="sidebar">
+        <div class="brand">
+            <i class="fas fa-dove"></i> 
+            <span class="brand-text">PF ERP</span> 
+            <span style="font-size:0.5em; color:rgba(255,255,255,0.5); font-weight:400; margin-left:5px;" class="brand-text">v18</span>
+            <button id="btn-toggle-menu" onclick="window.toggleSidebar()">
+                <i class="fas fa-bars"></i>
+            </button>
+        </div>
+        <ul class="nav-menu">
+            <li class="nav-item"><a href="#" onclick="window.showSection('home')" class="nav-link active"><i class="fas fa-home"></i> <span class="nav-text">Accueil</span></a></li>
+            <li class="nav-item"><a href="#" onclick="window.showSection('admin')" class="nav-link"><i class="fas fa-folder-open"></i> <span class="nav-text">Dossier Admin</span></a></li>
+            <li class="nav-item"><a href="#" onclick="window.showSection('base')" class="nav-link"><i class="fas fa-users"></i> <span class="nav-text">Base Clients</span></a></li>
+            <li class="nav-item"><a href="#" onclick="window.showSection('stock')" class="nav-link"><i class="fas fa-boxes"></i> <span class="nav-text">Gestion Stock</span></a></li>
+            
+            <li class="nav-item"><a href="facturation_v2.html" class="nav-link"><i class="fas fa-file-invoice-dollar"></i> <span class="nav-text">Facturation</span></a></li>
+            <li class="nav-item">
+                <a href="dossier_complet.html" class="nav-link" style="color:#f59e0b;">
+                    <i class="fas fa-layer-group"></i> <span class="nav-text">Atelier Dossier</span>
+                </a>
+            </li>
+            <li class="nav-item"><a href="#" onclick="window.showSection('settings')" class="nav-link"><i class="fas fa-building"></i> <span class="nav-text">Paramètres Agence</span></a></li>
+            
+            <li class="nav-item" style="margin-top:auto;">
+                <a href="#" onclick="window.logoutFirebase()" class="nav-link text-danger">
+                    <i class="fas fa-power-off"></i> <span class="nav-text">Déconnexion</span>
+                </a>
+            </li>
+        </ul>
+    </nav>
+
+    <main class="main-content">
+        <div class="ui-toolbar">
+            <button id="btn-compact-toggle" class="btn btn-grey" onclick="window.toggleCompactMode()" type="button" aria-pressed="true">
+                <i class="fas fa-compress-alt"></i> Mode: Compact
+            </button>
+        </div>
+        
+        <div id="view-home">
+            <div class="welcome-banner">
+                <div class="welcome-text">
+                    <h2>Tableau de Bord <i class="fas fa-chart-line" style="color:#fcd34d;"></i></h2>
+                    <p>Gestion administrative et logistique PF Solidaire.</p>
+                </div>
+                <div class="date-badge">
+                    <div id="header-time">--:--</div>
+                    <div id="header-date">Chargement...</div>
+                </div>
+            </div>
+
+            <div class="quick-stats">
+                <div class="mini-stat" onclick="window.showSection('stock')">
+                    <div class="mini-icon" style="background:#fff7ed; color:#ea580c;"><i class="fas fa-exclamation-triangle"></i></div>
+                    <div><div style="font-size:0.8rem; color:#64748b; font-weight:600;">STOCKS</div><div style="font-weight:bold;">Voir État</div></div>
+                </div>
+                <div class="mini-stat" onclick="window.showSection('base')">
+                    <div class="mini-icon" style="background:#eff6ff; color:#3b82f6;"><i class="fas fa-folder-open"></i></div>
+                    <div><div style="font-size:0.8rem; color:#64748b; font-weight:600;">CLIENTS</div><div style="font-weight:bold;">Rechercher</div></div>
+                </div>
+                <div class="mini-stat" onclick="window.location.reload()">
+                    <div class="mini-icon" style="background:#f0fdf4; color:#16a34a;"><i class="fas fa-sync-alt"></i></div>
+                    <div><div style="font-size:0.8rem; color:#64748b; font-weight:600;">SYSTÈME</div><div style="font-weight:bold;">Actualiser</div></div>
+                </div>
+            </div>
+
+            <h3 style="margin-bottom:20px; font-size:1.1rem; color:var(--dark);">ACCÈS RAPIDE</h3>
+            <div class="dashboard-grid">
+                <div class="action-card ac-blue" onclick="window.nouveauDossier()">
+                    <div class="card-icon-bg"><i class="fas fa-user-plus"></i></div>
+                    <div>
+                        <div class="card-title">Nouveau Dossier</div>
+                        <div class="card-desc">Créer une inhumation, crémation ou un rapatriement.</div>
+                    </div>
+                    <div class="card-arrow"><i class="fas fa-arrow-right"></i></div>
+                </div>
+                <div class="action-card ac-orange" onclick="window.showSection('base')">
+                    <div class="card-icon-bg"><i class="fas fa-users"></i></div>
+                    <div>
+                        <div class="card-title">Base Clients</div>
+                        <div class="card-desc">Retrouver un ancien dossier, consulter l'historique.</div>
+                    </div>
+                    <div class="card-arrow"><i class="fas fa-arrow-right"></i></div>
+                </div>
+                <div class="action-card ac-green" onclick="window.showSection('stock')">
+                    <div class="card-icon-bg"><i class="fas fa-boxes"></i></div>
+                    <div>
+                        <div class="card-title">Gestion Stocks</div>
+                        <div class="card-desc">Entrées, sorties et inventaire des articles.</div>
+                    </div>
+                    <div class="card-arrow"><i class="fas fa-arrow-right"></i></div>
+                </div>
+                <div class="action-card ac-purple" onclick="window.location.href='facturation_v2.html'">
+                    <div class="card-icon-bg"><i class="fas fa-file-invoice-dollar"></i></div>
+                    <div>
+                        <div class="card-title">Comptabilité</div>
+                        <div class="card-desc">Devis, Factures et Registre des Achats.</div>
+                    </div>
+                    <div class="card-arrow"><i class="fas fa-arrow-right"></i></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="view-stock" class="hidden">
+            <div class="page-header">
+                <h1>Gestion des Stocks</h1>
+                <button class="btn btn-green" onclick="window.openAjoutStock()"><i class="fas fa-plus"></i> AJOUTER ARTICLE</button>
+            </div>
+            <div id="form-stock" class="card hidden" style="border-top: 4px solid var(--primary);">
+                <h3>Nouveau Produit</h3>
+                <div class="form-grid">
+                    <div><label>Nom de l'article</label><input id="st_nom" placeholder="Ex: Cercueil Chêne..."></div>
+                    <div><label>Catégorie</label><select id="st_cat"><option>Cercueil</option><option>Urne</option><option>Capiton</option><option>Accessoire</option></select></div>
+                    <div><label>Quantité Initiale</label><input type="number" id="st_qte" value="1"></div>
+                    <div><label>Prix Achat (€)</label><input type="number" id="st_pa" placeholder="0.00"></div>
+                    <div><label>Prix Vente (€)</label><input type="number" id="st_pv" placeholder="0.00"></div>
+                    <div><label>Fournisseur</label><input id="st_fourn" placeholder="Nom fournisseur"></div>
+                </div>
+                <div style="margin-top:15px; display:flex; gap:10px;">
+                    <button class="btn btn-green" onclick="window.ajouterArticleStock()">VALIDER</button>
+                    <button class="btn btn-red" onclick="document.getElementById('form-stock').classList.add('hidden')">ANNULER</button>
+                </div>
+            </div>
+            <div class="card" style="padding:0; overflow:hidden;">
+                <table class="history-table">
+                    <thead><tr><th>Article</th><th>Catégorie</th><th>Prix Achat</th><th>Prix Vente</th><th>En Stock</th><th>Actions</th></tr></thead>
+                    <tbody id="stock-table-body"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="view-base" class="hidden">
+            <div id="base-clients-list-view">
+                <div class="page-header">
+                    <h1>Base Clients</h1>
+                    <div style="display:flex; gap:10px;">
+                        <button class="btn btn-green" onclick="window.createBaseClient()"><i class="fas fa-plus"></i> Ajouter un client</button>
+                        <input type="text" id="search-client" placeholder="Rechercher une fiche client..." style="width:250px;">
+                        <button class="btn btn-blue" onclick="window.chargerBaseClients()"><i class="fas fa-sync"></i> Actualiser</button>
+                    </div>
+                </div>
+                <div style="display:flex; gap:8px; margin-bottom:10px;">
+                    <span style="background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe; border-radius:999px; padding:4px 10px; font-size:12px; font-weight:700;">Clients : <span id="base-clients-count">0</span></span>
+                    <span style="background:#f0fdf4; color:#166534; border:1px solid #bbf7d0; border-radius:999px; padding:4px 10px; font-size:12px; font-weight:700;">Affichés : <span id="base-clients-filtered-count">0</span></span>
+                </div>
+
+                <div class="card" style="padding:0; overflow:hidden;">
+                    <div style="padding:14px 18px; border-bottom:1px solid #e2e8f0; font-weight:700; color:#0f172a;">Fiches Clients (Facturation)</div>
+                    <table class="history-table">
+                        <thead><tr><th style="width:60px;">#</th><th style="min-width:220px;">Nom</th><th>Téléphone</th><th>Email</th><th>Type</th><th style="min-width:280px;">Adresse</th><th>Notes</th><th style="text-align:center;">Actions</th></tr></thead>
+                        <tbody id="clients-ref-table-body"></tbody>
+                    </table>
+                    <div style="display:flex; justify-content:space-between; align-items:center; padding:12px 18px; border-top:1px solid #e2e8f0; background:#f8fafc;">
+                        <div id="base-clients-range" style="color:#334155; font-weight:700; font-size:13px;">Affichage : 0-0 sur 0</div>
+                        <div style="display:flex; gap:8px;">
+                            <button class="btn btn-grey" id="btn-clients-prev" onclick="window.baseClientsPrevPage()"><i class="fas fa-chevron-left"></i> Précédent</button>
+                            <button class="btn btn-grey" id="btn-clients-next" onclick="window.baseClientsNextPage()">Suivant <i class="fas fa-chevron-right"></i></button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="base-client-detail-view" class="hidden">
+                <div class="page-header" style="align-items:flex-start;">
+                    <div style="display:flex; flex-direction:column; gap:10px;">
+                        <button class="btn btn-grey" onclick="window.showBaseClientListView()" style="width:fit-content;"><i class="fas fa-arrow-left"></i> Retour à la liste</button>
+                        <h1 id="client-detail-title" style="margin:0;">Détails Client : -</h1>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div style="display:flex; justify-content:flex-end; margin-bottom:12px;">
+                        <button class="btn btn-green" onclick="window.saveBaseClientDetails()"><i class="fas fa-save"></i> Enregistrer les modifications</button>
+                    </div>
+                    <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:12px; margin-bottom:12px;">
+                        <input id="detail_client_id" type="hidden">
+                        <div>
+                            <label>NOM</label>
+                            <input id="detail_client_nom" placeholder="Nom client">
+                        </div>
+                        <div>
+                            <label>TYPE</label>
+                            <select id="detail_client_type"><option value="pro">Pro</option><option value="particulier">Particulier</option></select>
+                        </div>
+                        <div>
+                            <label>Téléphone</label>
+                            <input id="detail_client_tel" placeholder="Téléphone">
+                        </div>
+                        <div>
+                            <label>Email</label>
+                            <input id="detail_client_email" placeholder="Email">
+                        </div>
+                        <div>
+                            <label>Adresse</label>
+                            <input id="detail_client_adresse" placeholder="Adresse">
+                        </div>
+                        <div style="grid-column:1 / -1;">
+                            <label>Notes client</label>
+                            <textarea id="detail_client_notes" rows="3" placeholder="Notes..."></textarea>
+                        </div>
+                    </div>
+                    <div style="display:flex; justify-content:flex-end;">
+                        <button class="btn btn-green" onclick="window.saveBaseClientDetails()"><i class="fas fa-save"></i> Enregistrer les modifications</button>
+                    </div>
+                </div>
+
+                <div class="card" style="padding:16px;">
+                    <div class="tabs-container" style="margin-bottom:14px;">
+                        <button id="client-tab-prestations" class="tab-btn active" onclick="window.switchBaseClientDetailTab('prestations')">Prestations</button>
+                        <button id="client-tab-factures" class="tab-btn" onclick="window.switchBaseClientDetailTab('factures')">Factures & Devis</button>
+                        <button id="client-tab-pieces" class="tab-btn" onclick="window.switchBaseClientDetailTab('pieces')">Pièces Jointes</button>
+                    </div>
+
+                    <div id="client-tab-content-prestations">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                            <div style="color:#64748b;">Dossiers/prestations liés à ce client.</div>
+                            <button class="btn btn-blue" onclick="window.openClientNewPrestation()"><i class="fas fa-plus"></i> Nouvelle Prestation</button>
+                        </div>
+                        <table class="history-table">
+                            <thead>
+                                <tr>
+                                    <th>PRESTATION</th>
+                                    <th>DÉFUNT</th>
+                                    <th>DATE</th>
+                                    <th>RÔLE CLIENT</th>
+                                    <th style="text-align:right;">MONTANT FACTURE</th>
+                                    <th style="text-align:center;">ACTIONS</th>
+                                </tr>
+                            </thead>
+                            <tbody id="client-prestations-table-body"></tbody>
+                        </table>
+                    </div>
+                    <div id="client-tab-content-factures" class="hidden">
+                        <table class="history-table">
+                            <thead>
+                                <tr>
+                                    <th>TYPE</th>
+                                    <th>NUMÉRO</th>
+                                    <th>DATE</th>
+                                    <th>STATUT</th>
+                                    <th style="text-align:right;">TOTAL</th>
+                                    <th style="text-align:center;">ACTIONS</th>
+                                </tr>
+                            </thead>
+                            <tbody id="client-factures-table-body"></tbody>
+                        </table>
+                    </div>
+                    <div id="client-tab-content-pieces" class="hidden">
+                        <div style="display:flex; justify-content:flex-end; margin-bottom:8px;">
+                            <span style="background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe; border-radius:999px; padding:4px 10px; font-size:12px; font-weight:700;">Pièces : <span id="client-pieces-count">0</span></span>
+                        </div>
+                        <div style="background:#eff6ff; border:1px dashed #93c5fd; border-radius:10px; padding:14px; margin-bottom:12px;">
+                            <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+                                <input type="file" id="client_piece_input" accept="image/*,application/pdf" style="flex:1; min-width:250px;">
+                                <input type="text" id="client_piece_name" placeholder="Nom du document (optionnel)" style="flex:1; min-width:220px;">
+                                <button class="btn btn-blue" onclick="window.uploadClientAttachment()"><i class="fas fa-upload"></i> Ajouter</button>
+                            </div>
+                            <small style="color:#64748b; display:block; margin-top:8px;">PDF et images autorisés.</small>
+                        </div>
+                        <table class="history-table">
+                            <thead>
+                                <tr>
+                                    <th>Document</th>
+                                    <th>Date</th>
+                                    <th style="text-align:center;">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="client-pieces-table-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="view-admin" class="hidden">
+            <div class="page-header">
+                <h1>Dossier Administratif</h1>
+                <div style="display:flex; gap:10px;">
+                    <button class="btn btn-blue" onclick="window.nouveauDossier()"><i class="fas fa-plus"></i> Nouveau dossier</button>
+                </div>
+            </div>
+
+            <div id="admin-list-view">
+            <div class="card" style="padding:0; overflow:hidden;">
+                <div style="padding:14px 18px; border-bottom:1px solid #e2e8f0; display:flex; justify-content:space-between; align-items:center; gap:10px;">
+                    <strong style="color:#0f172a;">Dossiers Administratifs</strong>
+                    <div style="display:flex; gap:8px;">
+                        <input type="text" id="search-dossier-admin" placeholder="Rechercher dossier (défunt/mandant/code)..." oninput="window.filtrerDossiersAdmin()" style="width:320px;">
+                        <button class="btn btn-blue" onclick="window.chargerDossiersAdminList()"><i class="fas fa-sync"></i> Actualiser</button>
+                    </div>
+                </div>
+                <table class="history-table">
+                    <thead><tr><th>Date</th><th>Défunt</th><th>Mandant</th><th>Opération</th><th style="text-align:center;">Actions</th></tr></thead>
+                    <tbody id="dossiers-admin-table-body"></tbody>
+                </table>
+                <div style="display:flex; justify-content:space-between; align-items:center; padding:12px 18px; border-top:1px solid #e2e8f0; background:#f8fafc;">
+                    <div id="admin-dossiers-range" style="color:#334155; font-weight:700; font-size:13px;">Affichage : 0-0 sur 0</div>
+                    <div style="display:flex; gap:8px;">
+                        <button class="btn btn-grey" id="btn-admin-prev" onclick="window.adminDossiersPrevPage()"><i class="fas fa-chevron-left"></i> Précédent</button>
+                        <button class="btn btn-grey" id="btn-admin-next" onclick="window.adminDossiersNextPage()">Suivant <i class="fas fa-chevron-right"></i></button>
+                    </div>
+                </div>
+            </div>
+            </div>
+
+            <div id="admin-detail-view" class="hidden">
+            <div class="page-header" style="margin-top:8px;">
+                <button class="btn btn-grey" onclick="window.showAdminListView()"><i class="fas fa-arrow-left"></i> Retour à la liste</button>
+                <div style="display:flex; gap:10px;">
+                    <button class="btn btn-red" onclick="window.viderFormulaire()"><i class="fas fa-trash-alt"></i> NOUVEAU</button>
+                    <button class="btn btn-green" id="btn-save-bdd" onclick="window.sauvegarderDossier()"><i class="fas fa-save"></i> ENREGISTRER</button>
+                </div>
+            </div>
+            <div class="card" style="background:#f0f9ff; border:1px solid #bae6fd; margin-bottom:20px;">
+                <div style="display:flex; align-items:center; gap:20px;">
+                    <div style="width:50px; height:50px; background:white; border-radius:50%; display:flex; align-items:center; justify-content:center; color:var(--secondary); font-size:1.5rem;"><i class="fas fa-cloud-download-alt"></i></div>
+                    <div style="flex:1;">
+                        <label style="color:#0369a1;">IMPORTER DEPUIS LA FACTURATION</label>
+                        <div style="display:flex; gap:10px; margin-top:5px;">
+                            <select id="select-import-client" style="flex:1;"><option value="">Chargement des clients...</option></select>
+                            <button class="btn btn-blue" onclick="window.importerClientSelectionne()">Importer</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-grid-layout" style="display:grid; grid-template-columns: 2fr 1fr; gap:25px;">
+                
+                <div style="display:flex; flex-direction:column;">
+                    
+                    <div class="tabs-container">
+                        <button class="tab-btn active" onclick="window.switchAdminTab('identite')" id="tab-btn-identite"><i class="fas fa-users"></i> 1. IDENTITÉ & FAMILLE</button>
+                        <button class="tab-btn" onclick="window.switchAdminTab('technique')" id="tab-btn-technique"><i class="fas fa-cogs"></i> 2. TECHNIQUE & OBSÈQUES</button>
+                        <button class="tab-btn" onclick="window.switchAdminTab('protocole')" id="tab-btn-protocole"><i class="fas fa-church"></i> 3. PROTOCOLE & PLANNING</button>
+                    </div>
+
+                    <div id="tab-content-identite">
+                        <input type="hidden" id="dossier_id">
+                        <div class="card" style="border-top: 4px solid var(--secondary);">
+                            <h3 style="color:var(--secondary);"><i class="fas fa-user-tie"></i> CLIENT / MANDANT</h3>
+                            <div class="form-grid">
+                                <div class="span-2">
+                                    <label>Civilité & Nom Prénom</label>
+                                    <div style="display:flex; gap:10px;">
+                                        <select id="civilite_mandant" style="width:90px;"><option>M.</option><option>Mme</option></select>
+                                        <input id="soussigne" placeholder="Nom Prénom" style="flex:1; font-weight:600;">
+                                    </div>
+                                </div>
+                                <div><label>Lien de parenté</label><input id="lien" placeholder="Sélectionnez..." list="liens_list"></div>
+                                <div><label>Téléphone</label><input id="tel_mandant" placeholder="06..."></div>
+                                <div class="span-2"><label>Adresse Complète</label><input id="demeurant" placeholder="Numéro, Rue, Code Postal, Ville" list="villes_list"></div>
+                                <div class="span-2" style="margin-top:10px; padding-top:10px; border-top:1px dashed #cbd5e1;">
+                                    <label style="display:flex; align-items:center; gap:8px; font-weight:700; color:#334155;">
+                                        <input type="checkbox" id="payeur_different" onchange="window.togglePayeurSection()" style="width:auto;">
+                                        Le payeur de la facture est différent du signataire
+                                    </label>
+                                </div>
+                                <div id="bloc_payeur_different" class="span-2 hidden" style="overflow:hidden; transition:all .25s ease; background:#f8fafc; border:1px solid #cbd5e1; border-radius:8px; padding:12px;">
+                                    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
+                                        <div style="font-weight:700; color:#0f172a;">Payeur (distinct)</div>
+                                        <span id="payeur_link_badge" style="display:inline-flex; align-items:center; gap:6px; border-radius:999px; padding:3px 10px; font-size:12px; font-weight:700; background:#fff7ed; color:#9a3412; border:1px solid #fed7aa;">Nouveau client</span>
+                                    </div>
+                                    <input type="hidden" id="payeur_client_id">
+                                    <div class="form-grid">
+                                        <div class="span-2"><label>Nom entité / personne</label><input id="payeur_nom" list="payeurs_suggestions" oninput="window.onPayeurNomInput()" onchange="window.onPayeurNomInput()" placeholder="Nom payeur"></div>
+                                        <div><label>Téléphone payeur</label><input id="payeur_tel" placeholder="06..."></div>
+                                        <div><label>Email payeur</label><input id="payeur_email" placeholder="email@exemple.com"></div>
+                                        <div class="span-2"><label>Adresse payeur</label><input id="payeur_adresse" placeholder="Adresse payeur" list="villes_list"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card" style="border-top: 4px solid var(--dark);">
+                            <h3 style="color:var(--dark);"><i class="fas fa-user"></i> IDENTITÉ DÉFUNT</h3>
+                            <div class="form-grid">
+                                <div>
+                                    <label>Civilité & Nom</label>
+                                    <div style="display:flex; gap:10px;">
+                                        <select id="civilite_defunt" style="width:90px;"><option>M.</option><option>Mme</option></select>
+                                        <input id="nom" style="font-weight:bold; flex:1;" placeholder="NOM DE FAMILLE">
+                                    </div>
+                                </div>
+                                <div><label>Prénom(s)</label><input id="prenom" style="font-weight:bold;" placeholder="Prénoms"></div>
+                                <div><label>Nom de Jeune Fille</label><input id="nom_jeune_fille"></div>
+                                
+                                <div><label>Date Décès</label><input type="date" id="date_deces"></div>
+                                <div><label>Lieu Décès</label><input id="lieu_deces" list="villes_list"></div>
+                                <div><label>Heure Décès</label><input type="time" id="heure_deces"></div>
+                                
+                                <div>
+                                    <label>Date Naissance</label>
+                                    <div style="display:flex; flex-direction:column; gap:5px;">
+                                        <input type="date" id="date_naiss">
+                                        <input type="text" id="annee_naiss" class="hidden" placeholder="Année (ex: 1950)">
+                                        <div style="display:flex; align-items:center; gap:5px; margin-top:2px;">
+                                            <input type="checkbox" id="chk_sans_jour_mois" onchange="window.toggleDateNaiss()" style="width:auto; margin:0;">
+                                            <label for="chk_sans_jour_mois" style="font-size:0.75rem; color:var(--gray); cursor:pointer; margin:0; font-weight:normal;">Sans jour et mois</label>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div><label>Lieu Naissance</label><input id="lieu_naiss" list="villes_list"></div>
+                                <div><label>Nationalité</label><input id="nationalite" value="Française"></div>
+                                
+                                <div class="span-2"><label>Domicile Défunt</label><input id="adresse_fr" list="villes_list"></div>
+                                
+                                <div class="span-2" style="margin-top:15px; padding-top:15px; border-top:1px dashed var(--border);"><small style="color:var(--gray); font-weight:700;">FILIATION & SITUATION</small></div>
+                                <div><label>Père (Nom Prénom)</label><input id="pere"></div>
+                                <div><label>Mère (Nom Prénom)</label><input id="mere"></div>
+                                <div><label>Situation Matrimoniale</label><select id="matrimoniale"><option>Marié(e)</option><option>Veuf(ve)</option><option>Célibataire</option><option>Divorcé(e)</option></select></div>
+                                <div><label>Conjoint(e)</label><input id="conjoint"></div>
+                                <div class="span-2">
+                                    <label>Profession</label>
+                                    <div style="display:flex; gap:10px;">
+                                        <select id="prof_type" style="width:40%;">
+                                            <option value="Sans profession">Sans profession</option>
+                                            <option value="Retraité(e)">Retraité(e)</option>
+                                            <option value="Active">Active (Préciser ->)</option>
+                                        </select>
+                                        <input id="profession_libelle" placeholder="Ex: Boulanger, Enseignant..." style="width:60%;">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="tab-content-technique" class="hidden">
+                        <div class="card" style="border-top: 4px solid #f59e0b;">
+                            <h3><i class="fas fa-cog"></i> CONFIGURATION OPÉRATION</h3>
+                            <select id="prestation" onchange="window.toggleSections()" style="padding:15px; font-weight:bold; font-size:1rem; color:var(--dark); width:100%;">
+                                <option value="Inhumation">⚰️ INHUMATION</option>
+                                <option value="Crémation">🔥 CRÉMATION</option>
+                                <option value="Rapatriement">✈️ RAPATRIEMENT</option>
+                                <option value="Exhumation">⛏️ EXHUMATION</option>
+                                <option value="Transport">🚐 TRANSPORT (Seul)</option>
+                            </select>
+                        </div>
+
+                        <div class="card">
+                            <h3><i class="fas fa-wrench"></i> TECHNIQUE & POLICE</h3>
+                            <div class="form-grid">
+                                <div><label>Mise en Bière (Lieu)</label><input id="lieu_mise_biere" list="villes_list"></div>
+                                <div><label>Date Fermeture</label><input type="date" id="date_fermeture"></div>
+                                <div><label>Véhicule</label><input id="immatriculation" value="DA-081-ZQ"></div>
+                                <div class="span-2"><label>Type de Présence</label>
+                                    <select id="type_presence_select" onchange="window.togglePolice()">
+                                        <option value="famille">Famille présente</option>
+                                        <option value="police">Police (Absence famille)</option>
+                                    </select>
+                                </div>
+                                <div id="police_fields" class="span-2 form-grid hidden" style="background:#fef2f2; padding:15px; border-radius:8px; border:1px solid #fecaca;">
+                                    <div><label>Nom & Grade</label><input id="p_nom_grade"></div>
+                                    <div><label>Commissariat</label><input id="p_commissariat"></div>
+                                </div>
+                                <div id="famille_fields" class="span-2 form-grid" style="background:#f0fdf4; padding:15px; border-radius:8px; border:1px solid #bbf7d0;">
+                                    <div class="span-2" style="margin-bottom:5px;">
+                                        <input type="checkbox" id="copy_mandant" onchange="window.copierMandant()"> 
+                                        <label for="copy_mandant" style="font-weight:600; color:var(--primary-dark); cursor:pointer;">C'est le Mandant (Copie auto)</label>
+                                    </div>
+                                    <div><label>Nom & Prénom Témoin</label><input id="f_nom_prenom"></div>
+                                    <div><label>Lien avec Défunt</label><input id="f_lien" list="liens_list"></div>
+                                </div>
+
+                                <div class="span-2" style="background:var(--light); padding:15px; margin-top:10px; border-radius:8px; border-left: 4px solid #f59e0b;">
+                                    <label style="font-weight:bold; color:var(--dark);">TRANSPORT AVANT MISE EN BIÈRE</label>
+                                    <div class="form-grid">
+                                        <div><label>Lieu Départ</label><input id="av_lieu_depart" list="villes_list"></div>
+                                        <div><label>Lieu Arrivée</label><input id="av_lieu_arrivee" list="villes_list"></div>
+                                        <div><label>Date Dép.</label><input type="date" id="av_date_dep"></div>
+                                        <div><label>Heure Dép.</label><input type="time" id="av_heure_dep"></div>
+                                        <div><label>Date Arr.</label><input type="date" id="av_date_arr"></div>
+                                        <div><label>Heure Arr.</label><input type="time" id="av_heure_arr"></div>
+                                    </div>
+                                </div>
+
+                                <div class="span-2" style="background:var(--light); padding:15px; margin-top:10px; border-radius:8px; border-left: 4px solid var(--secondary);">
+                                    <label style="font-weight:bold; color:var(--dark);">TRANSPORT APRÈS MISE EN BIÈRE</label>
+                                    <div class="form-grid">
+                                        <div><label>Lieu Départ</label><input id="ap_lieu_depart" list="villes_list"></div>
+                                        <div><label>Lieu Arrivée</label><input id="ap_lieu_arrivee" list="villes_list"></div>
+                                        <div><label>Date Dép.</label><input type="date" id="ap_date_dep"></div>
+                                        <div><label>Heure Dép.</label><input type="time" id="ap_heure_dep"></div>
+                                        <div><label>Date Arr.</label><input type="date" id="ap_date_arr"></div>
+                                        <div><label>Heure Arr.</label><input type="time" id="ap_heure_arr"></div>
+                                    </div>
+                                </div>
+
+                                <div><label>Fait à (Général)</label><input id="faita" value="PERPIGNAN" list="villes_list"></div>
+                                <div><label>Date Signature</label><input id="dateSignature" type="date"></div>
+                            </div>
+                        </div>
+
+                        <div class="card specific-block" id="bloc_inhumation">
+                            <h3><i class="fas fa-church"></i> DÉTAILS INHUMATION</h3>
+                            <div class="form-grid">
+                                <div><label>Cimetière</label><input id="cimetiere_nom" list="villes_list"></div>
+                                <div><label>Concession N°</label><input id="num_concession"></div>
+                                <div><label>Titulaire</label><input id="titulaire_concession"></div>
+                                <div><label>Type Sépulture</label><select id="type_sepulture"><option>Caveau</option><option>Pleine Terre</option></select></div>
+                                <div><label>Date Inhumation</label><input type="date" id="date_inhumation"></div>
+                                <div><label>Heure</label><input type="time" id="heure_inhumation"></div>
+                            </div>
+                        </div>
+
+                        <div class="card specific-block hidden" id="bloc_cremation">
+                            <h3><i class="fas fa-fire"></i> DÉTAILS CRÉMATION</h3>
+                            <div class="form-grid">
+                                <div><label>Crématorium</label><input id="crematorium_nom"></div>
+                                <div><label>Date Crémation</label><input type="date" id="date_cremation"></div>
+                                <div><label>Heure</label><input type="time" id="heure_cremation"></div>
+                                <div class="span-2 cremation-only"><label>Destination Cendres</label><input id="destination_cendres"></div>
+                            </div>
+                        </div>
+
+                        <div class="card specific-block hidden" id="bloc_rapatriement" style="border-top: 4px solid #ef4444;">
+                            <h3><i class="fas fa-plane"></i> DÉTAILS RAPATRIEMENT</h3>
+                            <div class="form-grid">
+                                <div><label>Pays Destination</label><input id="rap_pays" list="villes_list"></div>
+                                <div><label>Ville Destination</label><input id="rap_ville" list="villes_list"></div>
+                                
+                                <div class="span-2" style="background:#f8fafc; padding:15px; border-radius:8px; border:1px solid var(--border);">
+                                    <label style="font-weight:bold; color:var(--dark);"><i class="fas fa-plane-departure"></i> VOL 1 (Principal)</label>
+                                    <div class="form-grid">
+                                        <div><label>N° LTA</label><input id="rap_lta"></div>
+                                        <div><label>N° Vol</label><input id="vol1_num"></div>
+                                        <div><label>Aéroport Départ</label><input id="vol1_dep_aero" list="villes_list"></div>
+                                        <div><label>Aéroport Arrivée</label><input id="vol1_arr_aero" list="villes_list"></div>
+                                        <div><label>Dép. (Date Heure)</label><input id="vol1_dep_time" placeholder="ex: 20/01 à 14h00"></div>
+                                        <div><label>Arr. (Date Heure)</label><input id="vol1_arr_time" placeholder="ex: 20/01 à 18h30"></div>
+                                    </div>
+                                    <div style="margin-top:15px;">
+                                        <input type="checkbox" id="check_vol2" onchange="window.toggleVol2()"> 
+                                        <label for="check_vol2" style="font-weight:600; color:#ef4444; display:inline;">Ajouter un Vol de Correspondance (Vol 2)</label>
+                                    </div>
+                                </div>
+
+                                <div id="bloc_vol2" class="span-2 form-grid hidden" style="background:#fff1f2; padding:15px; border-radius:8px; border:1px solid #fecaca;">
+                                    <div class="span-2"><label style="font-weight:bold;"><i class="fas fa-exchange-alt"></i> VOL 2 (Correspondance)</label></div>
+                                    <div><label>N° Vol 2</label><input id="vol2_num"></div>
+                                    <div></div>
+                                    <div><label>Aéroport Départ</label><input id="vol2_dep_aero" list="villes_list"></div>
+                                    <div><label>Aéroport Arrivée</label><input id="vol2_arr_aero" list="villes_list"></div>
+                                    <div><label>Dép. (Date Heure)</label><input id="vol2_dep_time"></div>
+                                    <div><label>Arr. (Date Heure)</label><input id="vol2_arr_time"></div>
+                                </div>
+
+                                <div class="span-2" style="background:var(--light); padding:15px; border-radius:8px;">
+                                    <label style="font-weight:bold;">Transport Routier (Arrivée)</label>
+                                    <div class="form-grid">
+                                        <div><label>Véhicule</label><input id="rap_immat" value="DA-081-ZQ"></div>
+                                        <div><label>Date Départ Route</label><input id="rap_date_dep_route"></div>
+                                        <div><label>Ville Départ</label><input id="rap_ville_dep" list="villes_list"></div>
+                                        <div><label>Ville Arrivée</label><input id="rap_ville_arr" list="villes_list"></div>
+                                    </div>
+                                </div>
+
+                                <div class="span-2" style="background:#ecfdf5; padding:15px; border-radius:8px; border:1px solid #a7f3d0;">
+                                    <label style="font-weight:bold; color:#065f46;"><i class="fas fa-file-signature"></i> Attestation conformité cercueil (PDF)</label>
+                                    <small style="display:block; color:#64748b; margin-bottom:8px;">Trajet sur l'attestation : laissez vide pour utiliser <strong>Aéroport départ</strong> / <strong>Aéroport arrivée</strong> du vol 1 (sinon vol 2), avec le pays du dossier pour l'arrivée.</small>
+                                    <div class="form-grid">
+                                        <div><label>Départ (surcharge)</label><input id="attest_trajet_depart" placeholder="ex: Toulouse-Blagnac, France"></div>
+                                        <div><label>Arrivée (aéroport, pays)</label><input id="attest_trajet_arrivee" placeholder="ex: Mohammed V, Maroc"></div>
+                                    </div>
+                                    <label style="font-weight:600; margin-top:12px; display:block;">Cas réglementaire (coche sur le PDF) :</label>
+                                    <div style="display:flex; flex-direction:column; gap:6px; margin-top:6px;">
+                                        <label style="font-weight:normal; cursor:pointer;"><input type="radio" name="attest_cercueil_option" id="attest_opt_funisorb" value="funisorb" checked style="width:auto; margin-right:8px;">FUNISORB (épurateur — norme SANP 9203149A)</label>
+                                        <label style="font-weight:normal; cursor:pointer;"><input type="radio" name="attest_cercueil_option" id="attest_opt_conservation" value="conservation" style="width:auto; margin-right:8px;">Soins de conservation (décret 31/12/1941)</label>
+                                        <label style="font-weight:normal; cursor:pointer;"><input type="radio" name="attest_cercueil_option" id="attest_opt_caisse" value="caisse" style="width:auto; margin-right:8px;">Caisse métallique étanche (10 Kg/cm²)</label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="tab-content-protocole" class="hidden">
+                        <div class="card" style="border-top: 4px solid #8b5cf6;">
+                            <h3><i class="fas fa-church"></i> PROTOCOLE & PLANNING</h3>
+                            <div class="form-grid">
+                                <div class="span-2" style="background:#f9fafb; padding:10px; border-radius:8px;">
+                                    <label style="font-weight:bold; color:#4b5563;">⚰️ CERCUEIL & ACCESSOIRES</label>
+                                    <div class="form-grid">
+                                        <div>
+                                            <label>Type Cercueil</label>
+                                            <select id="proto_cercueil">
+                                                <option value="Pin">Pin (Standard)</option>
+                                                <option value="Particules">Particules</option>
+                                                <option value="Peuplier">Peuplier</option>
+                                                <option value="Autre">Autre (Chêne/Acajou)</option>
+                                            </select>
+                                        </div>
+                                        <div class="cremation-only hidden">
+                                            <label>Urne</label>
+                                            <select id="proto_urne">
+                                                <option value="Non">Non fournie (Famille)</option>
+                                                <option value="Oui">Fournie par PF</option>
+                                                <option value="Cendrier">Cendrier Simple</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="span-2" style="background:#fff7ed; padding:10px; border-radius:8px; border:1px solid #fed7aa;">
+                                    <label style="font-weight:bold; color:#c2410c;">⏱️ PLANNING DÉTAILLÉ (Pour Fiche Déroulement)</label>
+                                    <p style="font-size:0.8rem; color:#ea580c; margin-bottom:10px;">Ajoutez les étapes chronologiques des obsèques :</p>
+
+                                    <div id="container_planning"></div>
+
+                                    <button class="btn btn-orange" style="margin-top:10px; font-size:0.8rem;" onclick="window.ajouterLignePlanning()">
+                                        <i class="fas fa-plus"></i> AJOUTER UNE ÉTAPE
+                                    </button>
+                                </div>
+
+                                <div class="span-2" style="background:#f0fdf4; padding:10px; border-radius:8px; border:1px solid #bbf7d0;">
+                                    <label style="font-weight:bold; color:#15803d;">🙏 OPTIONS CÉRÉMONIE</label>
+                                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-top:5px;">
+                                        <div style="display:flex; gap:5px; align-items:center;">
+                                            <input type="checkbox" id="chk_salle_hommage"> <label for="chk_salle_hommage">Salle des Hommages</label>
+                                        </div>
+                                        <div style="display:flex; gap:5px; align-items:center;">
+                                            <input type="checkbox" id="chk_maitre_ceremonie"> <label for="chk_maitre_ceremonie">Maître de Cérémonie</label>
+                                        </div>
+                                        <div style="display:flex; gap:5px; align-items:center;">
+                                            <input type="checkbox" id="chk_civile"> <label for="chk_civile">Cérémonie Civile</label>
+                                        </div>
+                                        <div style="display:flex; gap:5px; align-items:center;">
+                                            <input type="checkbox" id="chk_religieuse"> <label for="chk_religieuse">Cérémonie Religieuse</label>
+                                        </div>
+                                        <div style="display:flex; gap:5px; align-items:center;">
+                                            <input type="checkbox" id="chk_recueil"> <label for="chk_recueil">Recueillement</label>
+                                        </div>
+                                        <div style="display:flex; gap:5px; align-items:center;">
+                                            <input type="checkbox" id="chk_salon"> <label for="chk_salon">Salon de Présentation</label>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="span-2 cremation-only hidden" style="background:#eff6ff; padding:10px; border-radius:8px;">
+                                    <label style="font-weight:bold; color:#1d4ed8;">🌿 JARDIN DU SOUVENIR</label>
+                                    <div class="form-grid">
+                                        <div style="display:flex; gap:5px; align-items:center; margin-top:8px;">
+                                            <input type="checkbox" id="chk_dispersion"> <label for="chk_dispersion">Dispersion Jardin</label>
+                                        </div>
+                                        <div>
+                                            <label>Columbarium (Durée)</label>
+                                            <select id="proto_columbarium">
+                                                <option value="">-- Aucun --</option>
+                                                <option value="5 ans">5 ans</option>
+                                                <option value="10 ans">10 ans</option>
+                                                <option value="15 ans">15 ans</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="span-2">
+                                    <label>Instructions Spéciales (Musique, Lectures...)</label>
+                                    <textarea id="proto_instructions" rows="2" placeholder="Détails supplémentaires..." style="width:100%; border:1px solid #cbd5e1; border-radius:6px; padding:8px;"></textarea>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="card" style="margin-top:20px; border-top: 4px solid #3b82f6;">
+                        <h3 style="color:#3b82f6;"><i class="fas fa-paperclip"></i> PIÈCES JOINTES (GED)</h3>
+                        <div style="background:#eff6ff; padding:15px; border-radius:8px; border:1px dashed #3b82f6;">
+                            <div style="display:flex; gap:10px; align-items:center; margin-bottom:15px;">
+                                <input type="file" id="ged_input_file" accept="image/*,application/pdf" style="flex:1;">
+                                <input type="text" id="ged_file_name" placeholder="Nom (ex: CNI, Devis...)" style="flex:1; padding:8px; border:1px solid #ccc; border-radius:4px;">
+                                <button class="btn btn-blue" onclick="window.ajouterPieceJointe()" type="button">
+                                    <i class="fas fa-plus"></i> AJOUTER
+                                </button>
+                            </div>
+                            <small style="color:#64748b; display:block; margin-bottom:10px;">⚠️ GED : Images/PDF autorisés (Max 10 Mo).</small>
+
+                            <div id="liste_pieces_jointes" style="display:flex; flex-direction:column; gap:8px;">
+                                <div style="color:#94a3b8; font-style:italic;">Aucun document joint.</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card" style="height:fit-content; position:sticky; top:20px; border-top: 4px solid var(--primary);">
+                    <h3><i class="fas fa-print"></i> DOCUMENTS PDF</h3>
+                    <div style="display:flex; flex-direction:column; gap:12px;">
+                        <button class="btn btn-purple" onclick="window.genererPouvoir()">Pouvoir</button>
+                        <button class="btn btn-purple" onclick="window.genererDeclaration()">Déclaration Décès</button>
+                        <button class="btn btn-purple" onclick="window.genererFermeture()">PV Fermeture (Police)</button>
+                        <button class="btn btn-purple" onclick="window.genererDemandeFermetureMairie()">Fermeture (Mairie)</button>
+                        <div style="display:flex; gap:5px;">
+                            <button class="btn btn-purple" style="flex:1; font-size:0.8rem;" onclick="window.genererTransport('avant')">Transport AVANT</button>
+                            <button class="btn btn-purple" style="flex:1; font-size:0.8rem;" onclick="window.genererTransport('apres')">Transport APRÈS</button>
+                        </div>
+                        
+                        <div style="display:flex; gap:5px;">
+                            <button class="btn btn-purple" style="flex:1; font-size:0.8rem;" onclick="window.genererAttestationPresence()"><i class="fas fa-certificate"></i> Attestation</button>
+                            <button class="btn btn-purple" style="flex:1; font-size:0.8rem;" onclick="window.genererDeroulement()"><i class="fas fa-list-ol"></i> Déroulement</button>
+                        </div>
+
+                        <button class="btn btn-blue" id="btn_inhumation" onclick="window.genererDemandeInhumation()">Demande Inhumation</button>
+                        <button class="btn btn-blue hidden" id="btn_cremation" onclick="window.genererDemandeCremation()">Demande Crémation</button>
+                        <button class="btn hidden" id="btn_conf_cremation" onclick="window.genererConfirmationCremation()" style="background-color: #f97316; color: white;">
+                            <i class="fas fa-file-check"></i> Confirmation SEM
+                        </button>
+
+                        <button class="btn btn-red hidden" id="btn_rapatriement" onclick="window.genererDemandeRapatriement()">Rapatriement (Préf)</button>
+                        <button class="btn btn-red hidden" id="btn_attestation_cercueil" onclick="window.genererAttestationConformiteCercueil()" style="font-size:0.82rem;"><i class="fas fa-certificate"></i> Attestation conformité cercueil</button>
+                        <button class="btn btn-blue" onclick="window.genererDemandeOuverture()">Ouverture Sépulture</button>
+                    </div>
+                </div>
+            </div>
+            </div>
+        </div>
+
+        <div id="view-settings" class="hidden">
+            <div class="page-header">
+                <h1>Paramètres de l'Agence</h1>
+                <div style="display:flex; gap:10px;">
+                    <button class="btn btn-blue" onclick="window.chargerParametresAgence()"><i class="fas fa-sync"></i> Recharger</button>
+                    <button class="btn btn-green" id="btn-save-agency-settings" onclick="window.sauvegarderParametresAgence()"><i class="fas fa-save"></i> Enregistrer</button>
+                </div>
+            </div>
+
+            <div class="card" style="border-top:4px solid #0ea5e9;">
+                <h3 style="color:#0ea5e9;"><i class="fas fa-id-card"></i> Informations société</h3>
+                <div class="form-grid">
+                    <div><label>Raison sociale</label><input id="agency_company_name" placeholder="Nom de l'entreprise"></div>
+                    <div><label>SIRET</label><input id="agency_siret" placeholder="14 chiffres"></div>
+                    <div class="span-2"><label>Adresse</label><input id="agency_address" placeholder="Adresse complète"></div>
+                    <div><label>IBAN</label><input id="agency_iban" placeholder="FR76..."></div>
+                    <div><label>BIC</label><input id="agency_bic" placeholder="BIC/SWIFT"></div>
+                    <div><label>Titulaire RIB</label><input id="agency_rib_holder" placeholder="Titulaire du compte"></div>
+                    <div class="span-2"><label>Nom de la banque</label><input id="agency_bank_name" placeholder="Nom de la banque"></div>
+                </div>
+            </div>
+
+            <div class="card" style="border-top:4px solid #f59e0b;">
+                <h3 style="color:#f59e0b;"><i class="fas fa-image"></i> Logo de l'agence</h3>
+                <div class="form-grid">
+                    <div class="span-2">
+                        <label>URL du logo</label>
+                        <input id="agency_logo_url" placeholder="https://.../logo.png">
+                    </div>
+                    <div>
+                        <label>Ou importer un fichier</label>
+                        <input type="file" id="agency_logo_file" accept="image/*">
+                    </div>
+                    <div style="display:flex; align-items:flex-end;">
+                        <button class="btn btn-blue" type="button" onclick="window.uploadAgencyLogo()"><i class="fas fa-upload"></i> Envoyer le logo</button>
+                    </div>
+                </div>
+                <div style="margin-top:16px;">
+                    <label>Prévisualisation</label>
+                    <div style="margin-top:8px; border:1px dashed #cbd5e1; border-radius:10px; padding:12px; background:#f8fafc; display:flex; justify-content:center; min-height:120px;">
+                        <img id="agency_logo_preview" alt="Prévisualisation logo" style="max-height:100px; max-width:220px; object-fit:contain;">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+    
+    <button id="mobile-menu-btn" onclick="window.toggleSidebar()">
+        <i class="fas fa-bars"></i>
+    </button>
+    <div id="mobile-overlay" onclick="window.toggleSidebar()" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:4000;"></div>
+    
+    <script type="module" src="js/app.js?v=113"></script>
+    
+    <script>
+        window.toggleSidebar = function() {
+            const sidebar = document.querySelector('.sidebar');
+            if (sidebar) sidebar.classList.toggle('collapsed');
+        };
+    </script>
+</body>
+</html>
