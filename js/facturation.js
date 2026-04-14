@@ -1951,9 +1951,10 @@ window.generatePDFFromData = function(data, saveMode = false) {
     if(!logoBase64) chargerLogoBase64();
     const { jsPDF } = window.jspdf; 
     const doc = new jsPDF();
-    const greenColor = [16, 185, 129]; 
+    // Teinte calée sur le logo pour une identité visuelle cohérente.
+    const brandColor = [11, 102, 88];
     if (logoBase64) { try { doc.addImage(logoBase64,'PNG', 15, 6, 35, 35); } catch(e){} }
-    doc.setFontSize(11); doc.setFont("helvetica","bold"); doc.setTextColor(...greenColor);
+    doc.setFontSize(11); doc.setFont("helvetica","bold"); doc.setTextColor(...brandColor);
     doc.text(String(companyProfile.company_name || DEFAULT_COMPANY_PROFILE.company_name), 15, 40);
     doc.setFontSize(9); doc.setFont("helvetica","normal"); doc.setTextColor(80);
     doc.text(String(companyProfile.address || DEFAULT_COMPANY_PROFILE.address), 15, 45);
@@ -1974,10 +1975,13 @@ window.generatePDFFromData = function(data, saveMode = false) {
         doc.text(doc.splitTextToSize(infoText, 80), 115, infoY);
         doc.setTextColor(0);
     }
-    let y = 62; doc.setFontSize(13); doc.setFont("helvetica","bold"); doc.setTextColor(...greenColor);
-    doc.text(`${data.info.type} N° ${data.info.numero}`, 15, y);
+    let y = 62;
+    doc.setFontSize(13);
+    doc.setFont("helvetica","bold");
+    doc.setTextColor(...brandColor);
+    const centeredHeader = `${data.info.type} N° ${data.info.numero}  |  Date : ${new Date(data.info.date).toLocaleDateString()}`;
+    doc.text(centeredHeader, 105, y, { align: 'center' });
     doc.setFontSize(10); doc.setTextColor(0); doc.setFont("helvetica","normal");
-    doc.text(`Date : ${new Date(data.info.date).toLocaleDateString()}`, 15, y+6);
     doc.text(`Défunt : ${data.defunt.nom}`, 15, y+12);
     let datesDefunt = "";
     const naissanceDate = String(data?.defunt?.naiss || "").trim();
