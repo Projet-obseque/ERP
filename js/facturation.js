@@ -1952,7 +1952,7 @@ window.generatePDFFromData = function(data, saveMode = false) {
     const { jsPDF } = window.jspdf; 
     const doc = new jsPDF();
     const greenColor = [16, 185, 129]; 
-    if (logoBase64) { try { doc.addImage(logoBase64,'PNG', 15, 10, 25, 25); } catch(e){} }
+    if (logoBase64) { try { doc.addImage(logoBase64,'PNG', 15, 10, 32, 32); } catch(e){} }
     doc.setFontSize(11); doc.setFont("helvetica","bold"); doc.setTextColor(...greenColor);
     doc.text(String(companyProfile.company_name || DEFAULT_COMPANY_PROFILE.company_name), 15, 40);
     doc.setFontSize(9); doc.setFont("helvetica","normal"); doc.setTextColor(80);
