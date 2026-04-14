@@ -269,6 +269,13 @@ function setEditorActionButtonsVisibility() {
     btnAnnuler.style.display = canAnnuler ? 'inline-flex' : 'none';
 }
 
+function updateAcquitteParVisibility() {
+    const type = String(document.getElementById('doc_type')?.value || "").toUpperCase();
+    const wrap = document.getElementById('doc_acquitte_par_wrap');
+    if (!wrap) return;
+    wrap.style.display = type === "FACTURE" ? "block" : "none";
+}
+
 window.onDocStatutChange = function() {
     setEditorActionButtonsVisibility();
 };
@@ -309,6 +316,7 @@ window.onDocTypeChange = function() {
     } else {
         setDocStatutSelectValue("EMIS");
     }
+    updateAcquitteParVisibility();
     setEditorActionButtonsVisibility();
 };
 
@@ -1122,6 +1130,7 @@ window.nouveauDocument = function() {
     document.getElementById('client_adresse').value = "";
     if(document.getElementById('client_info')) document.getElementById('client_info').value = "";
     document.getElementById('defunt_nom').value = "";
+    if(document.getElementById('doc_acquitte_par')) document.getElementById('doc_acquitte_par').value = "";
     if(document.getElementById('defunt_date_naiss')) document.getElementById('defunt_date_naiss').value = "";
     if(document.getElementById('defunt_annee_naiss')) document.getElementById('defunt_annee_naiss').value = "";
     if(document.getElementById('defunt_date_deces')) document.getElementById('defunt_date_deces').value = "";
@@ -1165,6 +1174,9 @@ window.chargerDocument = async (id) => {
         document.getElementById('client_civility').value = civility;
 
         document.getElementById('defunt_nom').value = data.defunt_nom || data.defunt?.nom || "";
+        if (document.getElementById('doc_acquitte_par')) {
+            document.getElementById('doc_acquitte_par').value = data.acquitte_par || data.info?.acquitte_par || "";
+        }
         document.getElementById('defunt_date_naiss').value = data.defunt_date_naiss || data.defunt?.date_naiss || "";
         if (document.getElementById('defunt_annee_naiss')) document.getElementById('defunt_annee_naiss').value = data.defunt_annee_naiss || data.defunt?.annee_naiss || "";
         document.getElementById('defunt_date_deces').value = data.defunt_date_deces || data.defunt?.date_deces || "";
@@ -1383,6 +1395,7 @@ window.sauvegarderDocument = async function() {
         dossier_numero: document.getElementById('dossier_numero') ? document.getElementById('dossier_numero').value : "",
         dossier_id: document.getElementById('dossier_id') ? document.getElementById('dossier_id').value : "",
         defunt_nom: document.getElementById('defunt_nom').value, defunt_date_naiss: document.getElementById('defunt_date_naiss').value, defunt_annee_naiss: (document.getElementById('defunt_annee_naiss') ? document.getElementById('defunt_annee_naiss').value : ""), defunt_date_deces: document.getElementById('defunt_date_deces').value,
+        acquitte_par: document.getElementById('doc_acquitte_par') ? document.getElementById('doc_acquitte_par').value.trim() : "",
         statut,
         date_emission: dateEmission,
         date_echeance: dateEcheance,
@@ -1944,6 +1957,7 @@ window.genererPDFFacture = function() {
         client: { nom: document.getElementById('client_nom').value, adresse: document.getElementById('client_adresse').value, info: document.getElementById('client_info') ? document.getElementById('client_info').value : "", civility: document.getElementById('client_civility').value },
         defunt: { nom: document.getElementById('defunt_nom').value, naiss: document.getElementById('defunt_date_naiss').value, annee_naiss: (document.getElementById('defunt_annee_naiss') ? document.getElementById('defunt_annee_naiss').value : ""), deces: document.getElementById('defunt_date_deces').value },
         info: { type: document.getElementById('doc_type').value, date: document.getElementById('doc_date').value, numero: document.getElementById('doc_numero').value, total: parseFloat(document.getElementById('total_display').innerText) },
+        acquitte_par: document.getElementById('doc_acquitte_par') ? document.getElementById('doc_acquitte_par').value.trim() : "",
         remise_ttc: parseFloat(document.getElementById('doc_remise_ttc')?.value) || 0,
         lignes: [], paiements: paiements
     };
@@ -2065,6 +2079,14 @@ window.generatePDFFromData = function(data, saveMode = false) {
         doc.setFont("helvetica", "bold"); doc.text("COORDONNÉES BANCAIRES", leftX + 2, leftY + 4);
         doc.setFont("helvetica", "normal"); doc.text(`Banque : ${String(companyProfile.bank_name || DEFAULT_COMPANY_PROFILE.bank_name)}`, leftX + 2, leftY + 9);
         doc.text(`IBAN : ${String(companyProfile.iban || DEFAULT_COMPANY_PROFILE.iban)}`, leftX + 2, leftY + 14);
+    }
+
+    const acquittePar = String(data?.acquitte_par || "").trim();
+    if (acquittePar) {
+        doc.setFontSize(11);
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(20, 20, 20);
+        doc.text(`Facture acquittée par ${acquittePar}`, 15, 270);
     }
 
     if(saveMode) doc.save(`${data.info.type}_${data.info.numero}.pdf`); else window.open(doc.output('bloburl'), '_blank');
