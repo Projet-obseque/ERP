@@ -2020,14 +2020,16 @@ window.generatePDFFromData = function(data, saveMode = false) {
     const totalBoxX = 128;
     const totalBoxY = footerY - 2;
     const totalBoxW = 67;
-    const totalBoxH = 14;
+    const totalBoxH = 17;
     doc.setFillColor(245, 245, 245);
     doc.setDrawColor(180, 180, 180);
     doc.roundedRect(totalBoxX, totalBoxY, totalBoxW, totalBoxH, 1.5, 1.5, 'FD');
     doc.setFont("helvetica", "bold");
     doc.setTextColor(10, 10, 10);
+    doc.setFontSize(10);
+    doc.text(`Total TTC :`, totalBoxX + (totalBoxW / 2), totalBoxY + 6, { align: 'center' });
     doc.setFontSize(13);
-    doc.text(`${totalTTC.toFixed(2)} €`, totalBoxX + (totalBoxW / 2), totalBoxY + 9, { align: 'center' });
+    doc.text(`${totalTTC.toFixed(2)} €`, totalBoxX + (totalBoxW / 2), totalBoxY + 13, { align: 'center' });
 
     const leftX = 15;
     let leftY = doc.lastAutoTable.finalY + 10; 
