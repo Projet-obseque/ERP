@@ -2028,23 +2028,35 @@ window.generatePDFFromData = function(data, saveMode = false) {
     const libPdf = list.reduce((sum, p) => sum + (p.liberation ? parseFloat(p.montant) : 0), 0);
     const resteAPayer = totalTTC - totalVerse;
 
-    doc.setFontSize(10); doc.setFont("helvetica", "normal"); doc.setTextColor(0);
-    doc.text(`Sous-total TTC :`, rightLabelX, footerY, { align: 'right' }); 
-    doc.text(`${sousTotalPdf.toFixed(2)} €`, rightValueX, footerY, { align: 'right' });
-    footerY += 6;
+    doc.setFontSize(10); doc.setFont("helvetica", "normal"); doc.setTextColor(35, 35, 35);
+    // Sous-total affiché uniquement si une remise est appliquée.
     if (remiseAffiche > 0.001) {
+        doc.text(`Sous-total TTC :`, rightLabelX, footerY, { align: 'right' }); 
+        doc.text(`${sousTotalPdf.toFixed(2)} €`, rightValueX, footerY, { align: 'right' });
+        footerY += 6;
         doc.text(`Remise TTC :`, rightLabelX, footerY, { align: 'right' }); 
         doc.text(`- ${remiseAffiche.toFixed(2)} €`, rightValueX, footerY, { align: 'right' }); 
         footerY += 6; 
     }
-    doc.setFont("helvetica", "bold"); 
-    doc.text(`Total TTC :`, rightLabelX, footerY, { align: 'right' }); 
-    doc.text(`${totalTTC.toFixed(2)} €`, rightValueX, footerY, { align: 'right' });
-    footerY += 6;
+    // Encadre le total TTC pour le mettre en évidence.
+    const totalBoxX = 128;
+    const totalBoxY = footerY - 4;
+    const totalBoxW = 67;
+    const totalBoxH = 10;
+    doc.setFillColor(245, 245, 245);
+    doc.setDrawColor(180, 180, 180);
+    doc.roundedRect(totalBoxX, totalBoxY, totalBoxW, totalBoxH, 1.5, 1.5, 'FD');
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(15, 15, 15);
+    doc.text(`Total TTC :`, rightLabelX, footerY + 2, { align: 'right' }); 
+    doc.text(`${totalTTC.toFixed(2)} €`, rightValueX, footerY + 2, { align: 'right' });
+    footerY += 8;
     doc.setFont("helvetica", "normal");
+    doc.setTextColor(20, 20, 20);
 
     if (encaissePdf > 0) {
         doc.setFont("helvetica", "normal"); 
+        doc.setTextColor(20, 20, 20);
         doc.text(`Encaissé (trésorerie) :`, rightLabelX, footerY, { align: 'right' }); 
         doc.text(`- ${encaissePdf.toFixed(2)} €`, rightValueX, footerY, { align: 'right' }); 
         footerY += 6; 
@@ -2060,6 +2072,7 @@ window.generatePDFFromData = function(data, saveMode = false) {
     
     doc.setLineWidth(0.5); doc.line(120, footerY, 195, footerY); footerY += 6;
     doc.setFontSize(12); doc.setFont("helvetica", "bold"); 
+    doc.setTextColor(10, 10, 10);
     doc.text(`Net à Payer :`, rightLabelX, footerY, { align: 'right' }); 
     doc.text(`${resteAPayer.toFixed(2)} €`, rightValueX, footerY, { align: 'right' });
 
