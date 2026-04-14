@@ -166,6 +166,13 @@ function formatMoney(v) {
     return `${(parseFloat(v) || 0).toFixed(2)} €`;
 }
 
+function getDefuntLabel(defuntNom = "") {
+    const n = String(defuntNom || "").trim().toLowerCase();
+    if (!n) return "Défunt";
+    if (/^(mme|madame|mlle|mademoiselle)\b/.test(n)) return "Défunte";
+    return "Défunt";
+}
+
 function getPilotagePeriod() {
     const year = document.getElementById('pilotage_year')?.value || "";
     const month = document.getElementById('pilotage_month')?.value || "";
@@ -1982,7 +1989,7 @@ window.generatePDFFromData = function(data, saveMode = false) {
     const centeredHeader = `${data.info.type} N° ${data.info.numero}  |  Date : ${new Date(data.info.date).toLocaleDateString()}`;
     doc.text(centeredHeader, 105, y, { align: 'center' });
     doc.setFontSize(10); doc.setTextColor(0); doc.setFont("helvetica","normal");
-    doc.text(`Défunt : ${data.defunt.nom}`, 15, y+12);
+    doc.text(`${getDefuntLabel(data.defunt.nom)} : ${data.defunt.nom}`, 15, y+12);
     let datesDefunt = "";
     const naissanceDate = String(data?.defunt?.naiss || "").trim();
     const naissanceAnnee = String(data?.defunt?.annee_naiss || "").trim();
@@ -2048,21 +2055,17 @@ window.generatePDFFromData = function(data, saveMode = false) {
         doc.text("RÈGLEMENT :", leftX, leftY);
         doc.setFont("helvetica", "normal");
         doc.text(String(companyProfile.conditions || DEFAULT_COMPANY_PROFILE.conditions), leftX + 25, leftY);
-        leftY += 5;
+        leftY += 4;
+        doc.setFontSize(8);
+        doc.setTextColor(95);
+        doc.text("TVA non applicable, art. 293 B du CGI", leftX, leftY + 3);
+        doc.setTextColor(0);
+        leftY += 7;
         doc.setFillColor(248, 250, 252); doc.rect(leftX, leftY, 90, 18, 'F'); doc.setDrawColor(200); doc.rect(leftX, leftY, 90, 18);
         doc.setFont("helvetica", "bold"); doc.text("COORDONNÉES BANCAIRES", leftX + 2, leftY + 4);
         doc.setFont("helvetica", "normal"); doc.text(`Banque : ${String(companyProfile.bank_name || DEFAULT_COMPANY_PROFILE.bank_name)}`, leftX + 2, leftY + 9);
         doc.text(`IBAN : ${String(companyProfile.iban || DEFAULT_COMPANY_PROFILE.iban)}`, leftX + 2, leftY + 14);
     }
-
-    // Mention légale TVA (franchise en base)
-    try {
-        const pageHeight = doc.internal.pageSize.getHeight();
-        doc.setFont("helvetica", "normal");
-        doc.setFontSize(8);
-        doc.setTextColor(120);
-        doc.text("TVA non applicable, art. 293 B du CGI", 15, pageHeight - 10);
-    } catch (e) {}
 
     if(saveMode) doc.save(`${data.info.type}_${data.info.numero}.pdf`); else window.open(doc.output('bloburl'), '_blank');
 };
