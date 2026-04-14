@@ -267,6 +267,7 @@ service cloud.firestore {
           'tenant_id',
           'company_name',
           'siret',
+          'rcs',
           'address',
           'iban',
           'bic',

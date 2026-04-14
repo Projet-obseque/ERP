@@ -64,6 +64,7 @@ function fillAgencySettingsForm(profile) {
     };
     setValue('agency_company_name', profile?.company_name);
     setValue('agency_siret', profile?.siret);
+    setValue('agency_rcs', profile?.rcs);
     setValue('agency_address', profile?.address);
     setValue('agency_iban', profile?.iban);
     setValue('agency_bic', profile?.bic);
@@ -109,6 +110,7 @@ window.sauvegarderParametresAgence = async function() {
         const payload = {
             company_name: getValue('agency_company_name'),
             siret: getValue('agency_siret'),
+            rcs: getValue('agency_rcs'),
             address: getValue('agency_address'),
             iban: getValue('agency_iban'),
             bic: getValue('agency_bic'),

@@ -9,6 +9,7 @@ const DEFAULT_COMPANY_PROFILE = {
     company_name: "PF SOLIDAIRE",
     address: "32 boulevard Léon Jean Grégory Thuir - TEL : 07.55.18.27.77",
     siret: "53927029800042",
+    rcs: "539270298",
     iban: "FR76 1660 7000 0738 2217 4454 393",
     bank_name: "BANQUE POPULAIRE DU SUD",
     conditions: "Paiement à réception.",
@@ -786,6 +787,7 @@ window.apercuDocument = async function(id) {
                 // Calcul du total sécurisé pour éviter le NaN
                 total: parseFloat((data.total !== undefined) ? data.total : (data.info?.total || 0)) 
             },
+            acquitte_par: data.acquitte_par || data.info?.acquitte_par || "",
             remise_ttc: parseFloat(data.remise_ttc) || 0,
             lignes: data.lignes || [],
             paiements: data.paiements || []
@@ -1981,7 +1983,7 @@ window.generatePDFFromData = function(data, saveMode = false) {
     doc.text(String(companyProfile.address || DEFAULT_COMPANY_PROFILE.address), 15, 45);
     doc.text(`HABILITATION N° : 23-66-0205 | SIRET : ${String(companyProfile.siret || DEFAULT_COMPANY_PROFILE.siret)}`, 15, 49);
     doc.text("N° TVA Intracommunautaire : FR92539270298", 15, 53);
-    doc.text("RCS : 539270298", 15, 57);
+    doc.text(`RCS : ${String(companyProfile.rcs || DEFAULT_COMPANY_PROFILE.rcs)}`, 15, 57);
     doc.setFillColor(245, 245, 245); doc.roundedRect(110, 10, 85, 32, 3, 3, 'F');
     doc.setFontSize(10); doc.setTextColor(0); doc.setFont("helvetica","bold");
     doc.text(`${data.client.civility || ''} ${data.client.nom}`, 115, 18);
