@@ -1976,14 +1976,13 @@ window.generatePDFFromData = function(data, saveMode = false) {
     const doc = new jsPDF();
     // Teinte calée sur le logo pour une identité visuelle cohérente.
     const brandColor = [11, 102, 88];
-    if (logoBase64) { try { doc.addImage(logoBase64,'PNG', 15, 6, 35, 35); } catch(e){} }
+    if (logoBase64) { try { doc.addImage(logoBase64,'PNG', 15, 3, 35, 35); } catch(e){} }
     doc.setFontSize(11); doc.setFont("helvetica","bold"); doc.setTextColor(...brandColor);
     doc.text(String(companyProfile.company_name || DEFAULT_COMPANY_PROFILE.company_name), 15, 40);
     doc.setFontSize(9); doc.setFont("helvetica","normal"); doc.setTextColor(80);
     doc.text(String(companyProfile.address || DEFAULT_COMPANY_PROFILE.address), 15, 45);
     doc.text(`HABILITATION N° : 23-66-0205 | SIRET : ${String(companyProfile.siret || DEFAULT_COMPANY_PROFILE.siret)}`, 15, 49);
-    doc.text("N° TVA Intracommunautaire : FR92539270298", 15, 53);
-    doc.text(`RCS : ${String(companyProfile.rcs || DEFAULT_COMPANY_PROFILE.rcs)}`, 15, 57);
+    doc.text(`N° TVA Intracommunautaire : FR92539270298 - RCS : ${String(companyProfile.rcs || DEFAULT_COMPANY_PROFILE.rcs)}`, 15, 53);
     doc.setFillColor(245, 245, 245); doc.roundedRect(110, 10, 85, 32, 3, 3, 'F');
     doc.setFontSize(10); doc.setTextColor(0); doc.setFont("helvetica","bold");
     doc.text(`${data.client.civility || ''} ${data.client.nom}`, 115, 18);
