@@ -2068,15 +2068,29 @@ window.generatePDFFromData = function(data, saveMode = false) {
         const resume = summarizePaiements(data.paiements || [], totalTTC);
         const encaisse = Math.max(0, parseFloat(resume.encaisseReel) || 0);
         const netAPayer = Math.max(0, parseFloat(resume.reste) || 0);
+        const remiseTTC = Math.max(0, parseFloat(data.remise_ttc) || 0);
+        const reliquatLibere = Math.max(0, parseFloat(resume.liberationsMontant) || 0);
         const detailStartY = totalBoxY + totalBoxH + 7;
         const lineSpacing = 7;
+        let detailY = detailStartY;
         doc.setFontSize(11);
         doc.setFont("helvetica", "bold");
         doc.setTextColor(10, 10, 10);
-        doc.text("Encaissé (trésorerie) :", totalBoxX + 1, detailStartY);
-        doc.text(`- ${encaisse.toFixed(2)} €`, totalBoxX + totalBoxW - 1, detailStartY, { align: 'right' });
-        doc.text("Net à payer :", totalBoxX + 1, detailStartY + lineSpacing);
-        doc.text(`${netAPayer.toFixed(2)} €`, totalBoxX + totalBoxW - 1, detailStartY + lineSpacing, { align: 'right' });
+        doc.text("Encaissé (trésorerie) :", totalBoxX + 1, detailY);
+        doc.text(`- ${encaisse.toFixed(2)} €`, totalBoxX + totalBoxW - 1, detailY, { align: 'right' });
+        detailY += lineSpacing;
+        if (remiseTTC > 0.001) {
+            doc.text("Remise TTC :", totalBoxX + 1, detailY);
+            doc.text(`- ${remiseTTC.toFixed(2)} €`, totalBoxX + totalBoxW - 1, detailY, { align: 'right' });
+            detailY += lineSpacing;
+        }
+        if (reliquatLibere > 0.001) {
+            doc.text("Reliquat libéré (don/geste) :", totalBoxX + 1, detailY);
+            doc.text(`- ${reliquatLibere.toFixed(2)} €`, totalBoxX + totalBoxW - 1, detailY, { align: 'right' });
+            detailY += lineSpacing;
+        }
+        doc.text("Net à payer :", totalBoxX + 1, detailY);
+        doc.text(`${netAPayer.toFixed(2)} €`, totalBoxX + totalBoxW - 1, detailY, { align: 'right' });
     }
 
     const leftX = 15;
