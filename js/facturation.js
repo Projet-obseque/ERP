@@ -1133,6 +1133,7 @@ window.nouveauDocument = function() {
     if(document.getElementById('client_info')) document.getElementById('client_info').value = "";
     document.getElementById('defunt_nom').value = "";
     if(document.getElementById('doc_acquitte_par')) document.getElementById('doc_acquitte_par').value = "";
+    if (document.getElementById('doc_show_balance_pdf')) document.getElementById('doc_show_balance_pdf').checked = false;
     if(document.getElementById('defunt_date_naiss')) document.getElementById('defunt_date_naiss').value = "";
     if(document.getElementById('defunt_annee_naiss')) document.getElementById('defunt_annee_naiss').value = "";
     if(document.getElementById('defunt_date_deces')) document.getElementById('defunt_date_deces').value = "";
@@ -1178,6 +1179,9 @@ window.chargerDocument = async (id) => {
         document.getElementById('defunt_nom').value = data.defunt_nom || data.defunt?.nom || "";
         if (document.getElementById('doc_acquitte_par')) {
             document.getElementById('doc_acquitte_par').value = data.acquitte_par || data.info?.acquitte_par || "";
+        }
+        if (document.getElementById('doc_show_balance_pdf')) {
+            document.getElementById('doc_show_balance_pdf').checked = false;
         }
         document.getElementById('defunt_date_naiss').value = data.defunt_date_naiss || data.defunt?.date_naiss || "";
         if (document.getElementById('defunt_annee_naiss')) document.getElementById('defunt_annee_naiss').value = data.defunt_annee_naiss || data.defunt?.annee_naiss || "";
@@ -1955,11 +1959,13 @@ window.loadTemplate = function(type) {
 
 // IMPRESSION PDF (LAYOUT OPTIMISÉ)
 window.genererPDFFacture = function() {
+    const showBalanceDetails = document.getElementById('doc_show_balance_pdf')?.checked === true;
     const data = {
         client: { nom: document.getElementById('client_nom').value, adresse: document.getElementById('client_adresse').value, info: document.getElementById('client_info') ? document.getElementById('client_info').value : "", civility: document.getElementById('client_civility').value },
         defunt: { nom: document.getElementById('defunt_nom').value, naiss: document.getElementById('defunt_date_naiss').value, annee_naiss: (document.getElementById('defunt_annee_naiss') ? document.getElementById('defunt_annee_naiss').value : ""), deces: document.getElementById('defunt_date_deces').value },
         info: { type: document.getElementById('doc_type').value, date: document.getElementById('doc_date').value, numero: document.getElementById('doc_numero').value, total: parseFloat(document.getElementById('total_display').innerText) },
         acquitte_par: document.getElementById('doc_acquitte_par') ? document.getElementById('doc_acquitte_par').value.trim() : "",
+        show_balance_details: showBalanceDetails,
         remise_ttc: parseFloat(document.getElementById('doc_remise_ttc')?.value) || 0,
         lignes: [], paiements: paiements
     };
@@ -2057,6 +2063,21 @@ window.generatePDFFromData = function(data, saveMode = false) {
     doc.text(`Total TTC :`, totalBoxX + 12, totalBoxY + 7.5);
     doc.setFontSize(12);
     doc.text(`${totalTTC.toFixed(2)} €`, totalBoxX + totalBoxW - 4, totalBoxY + 7.5, { align: 'right' });
+
+    if (data.info.type === 'FACTURE' && data.show_balance_details === true) {
+        const resume = summarizePaiements(data.paiements || [], totalTTC);
+        const encaisse = Math.max(0, parseFloat(resume.encaisseReel) || 0);
+        const netAPayer = Math.max(0, parseFloat(resume.reste) || 0);
+        const detailStartY = totalBoxY + totalBoxH + 7;
+        const lineSpacing = 7;
+        doc.setFontSize(11);
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(10, 10, 10);
+        doc.text("Encaissé (trésorerie) :", totalBoxX + 1, detailStartY);
+        doc.text(`- ${encaisse.toFixed(2)} €`, totalBoxX + totalBoxW - 1, detailStartY, { align: 'right' });
+        doc.text("Net à payer :", totalBoxX + 1, detailStartY + lineSpacing);
+        doc.text(`${netAPayer.toFixed(2)} €`, totalBoxX + totalBoxW - 1, detailStartY + lineSpacing, { align: 'right' });
+    }
 
     const leftX = 15;
     let leftY = doc.lastAutoTable.finalY + 10; 
