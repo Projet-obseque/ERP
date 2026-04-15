@@ -177,9 +177,14 @@
                 <h2 style="margin-bottom:5px;"><i class="fas fa-tools" style="color:#ea580c;"></i> Atelier de Fusion</h2>
                 <p style="margin:0; color:#64748b; font-size:0.9rem;">1. Ajoutez. 2. Renommez si besoin. 3. PDF : pages (↻ / 🗑). 4. Fusionnez !</p>
             </div>
-            <button id="btn-merge" class="btn-fusion" onclick="fusionnerTout()" disabled>
-                <i class="fas fa-file-pdf"></i> TÉLÉCHARGER LE DOSSIER
-            </button>
+            <div style="display:flex; gap:10px; align-items:center;">
+                <button id="btn-compress" type="button" class="btn btn-grey" onclick="toggleCompression()" style="border:1px solid #dbeafe; color:#1e40af; background:#eff6ff; padding:10px 14px; border-radius:10px; font-weight:700;">
+                    <i class="fas fa-compress-arrows-alt"></i> Compresser : OFF
+                </button>
+                <button id="btn-merge" class="btn-fusion" onclick="fusionnerTout()" disabled>
+                    <i class="fas fa-file-pdf"></i> TÉLÉCHARGER LE DOSSIER
+                </button>
+            </div>
         </div>
 
         <div class="fusion-options">
@@ -268,6 +273,21 @@
 
         // === 2. MOTEUR ATELIER ===
         const { PDFDocument } = PDFLib;
+        let compressionEnabled = false;
+
+        function updateCompressionButton() {
+            const btn = document.getElementById('btn-compress');
+            if (!btn) return;
+            btn.innerHTML = `<i class="fas fa-compress-arrows-alt"></i> Compresser : ${compressionEnabled ? 'ON' : 'OFF'}`;
+            btn.style.background = compressionEnabled ? '#dcfce7' : '#eff6ff';
+            btn.style.color = compressionEnabled ? '#166534' : '#1e40af';
+            btn.style.borderColor = compressionEnabled ? '#86efac' : '#dbeafe';
+        }
+
+        window.toggleCompression = function() {
+            compressionEnabled = !compressionEnabled;
+            updateCompressionButton();
+        };
 
         function wrapFile(file) {
             return { file, displayName: file.name };
@@ -612,6 +632,48 @@
             return `Dossier_${partNom}_${d}.pdf`;
         }
 
+        async function optimizeImageForPdf(file) {
+            try {
+                const isImage = (file.type || "").startsWith("image/");
+                if (!isImage) return { kind: "original", buffer: await file.arrayBuffer() };
+                if ((file.size || 0) <= 1.5 * 1024 * 1024) {
+                    return { kind: "original", buffer: await file.arrayBuffer() };
+                }
+
+                const objectUrl = URL.createObjectURL(file);
+                const img = await new Promise((resolve, reject) => {
+                    const i = new Image();
+                    i.onload = () => resolve(i);
+                    i.onerror = reject;
+                    i.src = objectUrl;
+                });
+                URL.revokeObjectURL(objectUrl);
+
+                const maxSide = 1800;
+                const srcW = img.naturalWidth || img.width;
+                const srcH = img.naturalHeight || img.height;
+                const scale = Math.min(1, maxSide / Math.max(srcW, srcH));
+                const targetW = Math.max(1, Math.round(srcW * scale));
+                const targetH = Math.max(1, Math.round(srcH * scale));
+
+                const canvas = document.createElement("canvas");
+                canvas.width = targetW;
+                canvas.height = targetH;
+                const ctx = canvas.getContext("2d");
+                if (!ctx) return { kind: "original", buffer: await file.arrayBuffer() };
+                ctx.fillStyle = "#ffffff";
+                ctx.fillRect(0, 0, targetW, targetH);
+                ctx.drawImage(img, 0, 0, targetW, targetH);
+
+                const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.82));
+                if (!blob) return { kind: "original", buffer: await file.arrayBuffer() };
+                return { kind: "jpeg", buffer: await blob.arrayBuffer() };
+            } catch (e) {
+                console.warn("Optimisation image ignorée :", e);
+                return { kind: "original", buffer: await file.arrayBuffer() };
+            }
+        }
+
         window.fusionnerTout = async function() {
             const btn = document.getElementById('btn-merge');
             const originalText = btn.innerHTML;
@@ -631,7 +693,9 @@
                         copiedPages.forEach((page) => pdfDoc.addPage(page));
                     } else {
                         let image;
-                        if (file.type === 'image/jpeg' || file.type === 'image/jpg') image = await pdfDoc.embedJpg(arrayBuffer);
+                        const optimized = compressionEnabled ? await optimizeImageForPdf(file) : { kind: "original", buffer: arrayBuffer };
+                        if (optimized.kind === "jpeg") image = await pdfDoc.embedJpg(optimized.buffer);
+                        else if (file.type === 'image/jpeg' || file.type === 'image/jpg') image = await pdfDoc.embedJpg(arrayBuffer);
                         else if (file.type === 'image/png') image = await pdfDoc.embedPng(arrayBuffer);
 
                         if (image) {
@@ -657,6 +721,8 @@
             btn.innerHTML = originalText;
             btn.disabled = false;
         };
+
+        updateCompressionButton();
     </script>
 </body>
 </html>
