@@ -12,27 +12,16 @@
     <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/downloadjs/1.4.8/download.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
+    <link rel="stylesheet" href="style.css">
     
     <style>
         :root { --primary: #10b981; --primary-dark: #059669; --secondary: #3b82f6; --dark: #1e293b; --light: #f8fafc; --gray: #64748b; --border: #e2e8f0; }
         body { font-family: 'Inter', sans-serif; background-color: #f1f5f9; margin: 0; display: flex; height: 100vh; color: var(--dark); overflow: hidden; }
         .hidden { display: none !important; }
 
-        /* SIDEBAR V18 */
-        .sidebar { width: 260px; background: white; border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: 20px; box-shadow: 2px 0 10px rgba(0,0,0,0.02); z-index: 10; transition: all 0.3s ease; }
-        .sidebar.collapsed { width: 80px; padding: 20px 10px; }
-        .sidebar.collapsed .brand-text, .sidebar.collapsed .nav-text { display: none; }
-        .sidebar.collapsed .brand { justify-content: center; }
-        .sidebar.collapsed .nav-link { justify-content: center; padding: 15px; }
-        .sidebar.collapsed .nav-link i { margin: 0; font-size: 1.4rem; }
-        .sidebar.collapsed #btn-toggle-menu { margin-left: 0; }
-
-        .brand { font-size: 1.4rem; font-weight: 800; color: var(--primary); margin-bottom: 40px; display: flex; align-items: center; gap: 10px; white-space: nowrap; overflow: hidden; }
-        .nav-menu { list-style: none; padding: 0; margin: 0; flex: 1; display: flex; flex-direction: column; gap: 5px; }
-        .nav-link { display: flex; align-items: center; gap: 12px; padding: 12px 15px; border-radius: 8px; text-decoration: none; color: var(--gray); font-weight: 500; transition: all 0.2s ease; white-space: nowrap; overflow: hidden; }
-        .nav-link:hover { background: #ecfdf5; color: var(--primary-dark); transform: translateX(3px); }
+        /* Sidebar: s'appuie sur style.css (menu identique au reste de l'app) */
+        .nav-menu { flex: 1; display: flex; flex-direction: column; }
         .nav-link.active { background: #ecfdf5; color: var(--primary-dark); font-weight: 700; }
-        .nav-link i { width: 25px; text-align: center; }
         .text-danger { color: #ef4444 !important; }
         .text-danger:hover { background: #fef2f2 !important; color: #dc2626 !important; }
 
@@ -150,7 +139,7 @@
 
     <nav class="sidebar">
         <div class="brand">
-            <i class="fas fa-dove"></i> 
+            <img id="nav-agency-logo" src="logo.png" alt="Logo agence" style="width:30px; height:30px; border-radius:8px; object-fit:contain; background:#fff;">
             <span class="brand-text">PF ERP</span> 
             <span style="font-size:0.5em; color:rgba(255,255,255,0.5); font-weight:400; margin-left:5px;" class="brand-text">v18</span>
             <button id="btn-toggle-menu" onclick="toggleSidebar()">
@@ -158,13 +147,13 @@
             </button>
         </div>
         <ul class="nav-menu">
-            <li class="nav-item"><a href="index.html" class="nav-link"><i class="fas fa-home"></i> <span class="nav-text">Accueil</span></a></li>
-            <li class="nav-item"><a href="index.html" class="nav-link"><i class="fas fa-folder-open"></i> <span class="nav-text">Dossier Admin</span></a></li>
-            <li class="nav-item"><a href="index.html" class="nav-link"><i class="fas fa-users"></i> <span class="nav-text">Base Clients</span></a></li>
-            <li class="nav-item"><a href="index.html" class="nav-link"><i class="fas fa-boxes"></i> <span class="nav-text">Gestion Stock</span></a></li>
+            <li class="nav-item"><a href="index.html?view=home" class="nav-link"><i class="fas fa-home"></i> <span class="nav-text">Accueil</span></a></li>
+            <li class="nav-item"><a href="index.html?view=admin" class="nav-link"><i class="fas fa-folder-open"></i> <span class="nav-text">Dossier Admin</span></a></li>
+            <li class="nav-item"><a href="index.html?view=base" class="nav-link"><i class="fas fa-users"></i> <span class="nav-text">Base Clients</span></a></li>
+            <li class="nav-item"><a href="index.html?view=stock" class="nav-link"><i class="fas fa-boxes"></i> <span class="nav-text">Gestion Stock</span></a></li>
             <li class="nav-item"><a href="facturation_v2.html" class="nav-link"><i class="fas fa-file-invoice-dollar"></i> <span class="nav-text">Facturation</span></a></li>
             <li class="nav-item"><a href="#" class="nav-link active"><i class="fas fa-layer-group"></i> <span class="nav-text">Atelier Dossier</span></a></li>
-            <li class="nav-item"><a href="index.html" class="nav-link"><i class="fas fa-building"></i> <span class="nav-text">Paramètres Agence</span></a></li>
+            <li class="nav-item"><a href="index.html?view=settings" class="nav-link"><i class="fas fa-building"></i> <span class="nav-text">Paramètres Agence</span></a></li>
             <li class="nav-item" style="margin-top:auto;"><a href="#" onclick="window.logout()" class="nav-link text-danger"><i class="fas fa-power-off"></i> <span class="nav-text">Déconnexion</span></a></li>
         </ul>
     </nav>
@@ -233,11 +222,26 @@
     <script type="module">
         import { auth } from './js/config.js'; 
         import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { refreshCompanyProfile } from './js/tenant_context.js';
+        const SIDEBAR_STORAGE_KEY = "pf_sidebar_collapsed";
+
+        function applySidebarState(collapsed) {
+            const sidebar = document.querySelector('.sidebar');
+            if (!sidebar) return;
+            sidebar.classList.toggle('collapsed', !!collapsed);
+        }
 
         // === 1. SÉCURITÉ ACTIVE ===
         onAuthStateChanged(auth, (user) => {
             const loader = document.getElementById('app-loader');
             if (user) {
+                refreshCompanyProfile()
+                    .then((profile) => {
+                        const logo = document.getElementById('nav-agency-logo');
+                        const url = String(profile?.logo_url || "").trim();
+                        if (logo) logo.src = url || "logo.png";
+                    })
+                    .catch(() => {});
                 // Connecté : On enlève le loader
                 if(loader) { loader.style.opacity = '0'; setTimeout(() => loader.remove(), 500); }
             } else {
@@ -265,9 +269,17 @@
                     btnIcon.classList.remove('fa-times'); btnIcon.classList.add('fa-bars');
                 }
             } else {
-                sidebar.classList.toggle('collapsed');
+                const nextCollapsed = !sidebar.classList.contains('collapsed');
+                applySidebarState(nextCollapsed);
+                try { localStorage.setItem(SIDEBAR_STORAGE_KEY, nextCollapsed ? "1" : "0"); } catch (_) {}
             }
         };
+
+        document.addEventListener("DOMContentLoaded", () => {
+            let collapsed = false;
+            try { collapsed = localStorage.getItem(SIDEBAR_STORAGE_KEY) === "1"; } catch (_) {}
+            applySidebarState(collapsed);
+        });
 
         // === 2. MOTEUR ATELIER ===
         const { PDFDocument } = PDFLib;
