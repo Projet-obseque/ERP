@@ -1127,123 +1127,188 @@ window.genererAttestationPresence = function() {
 window.genererDeroulement = function() {
     if(!window.logoBase64) window.chargerLogoBase64(); 
     const { jsPDF } = window.jspdf; const pdf = new jsPDF();
-    
-    pdf.setDrawColor(34, 155, 76); 
-    pdf.setLineWidth(1);
-    pdf.rect(5, 5, 200, 287); 
+
+    const pageBottom = 284;
+    const startX = 20;
+    const col1W = 30;
+    const col2W = 140;
+    const contentW = 170;
+    const tableLineH = 4.5;
+    const paragraphLineH = 5;
+
+    const drawFrame = () => {
+        pdf.setDrawColor(34, 155, 76);
+        pdf.setLineWidth(1);
+        pdf.rect(5, 5, 200, 287);
+    };
+
+    const addPageAndFrame = () => {
+        pdf.addPage();
+        drawFrame();
+        if (window.logoBase64) {
+            try {
+                pdf.saveGraphicsState();
+                pdf.setGState(new pdf.GState({ opacity: 0.08 }));
+                pdf.addImage(window.logoBase64, "PNG", 55, 95, 100, 100);
+                pdf.restoreGraphicsState();
+            } catch (e) {}
+        }
+        y = 18;
+    };
+
+    const ensureSpace = (neededHeight) => {
+        if (y + neededHeight > pageBottom) addPageAndFrame();
+    };
 
     let y = 20;
-    pdf.setFont("helvetica", "bold"); pdf.setTextColor(34, 155, 76); pdf.setFontSize(14);
+    drawFrame();
+
+    pdf.setFont("helvetica", "bold");
+    pdf.setTextColor(34, 155, 76);
+    pdf.setFontSize(14);
     pdf.text("POMPES FUNEBRES SOLIDAIRE PERPIGNAN", 105, y, { align: "center" });
-    y+=6;
-    pdf.setFontSize(8); pdf.setTextColor(0); pdf.setFont("helvetica", "bold");
+    y += 6;
+    pdf.setFontSize(8);
+    pdf.setTextColor(0);
+    pdf.setFont("helvetica", "bold");
     pdf.text("32 boulevard Léon Jean Grégory 66300 THUIR - TEL : 07.55.18.27.77", 105, y, { align: "center" });
-    y+=5;
+    y += 5;
     pdf.text("HABILITATION N° : 23-66-0205  |  IMMATRICULATION : DA-081-ZQ", 105, y, { align: "center" });
-    
-    y+=5; 
-    pdf.setDrawColor(180, 0, 0); pdf.setLineWidth(0.8);
+
+    y += 5;
+    pdf.setDrawColor(180, 0, 0);
+    pdf.setLineWidth(0.8);
     pdf.line(50, y, 160, y);
 
-    y+=15;
+    y += 15;
     pdf.setFillColor(220, 252, 231);
     pdf.setDrawColor(34, 155, 76);
-    pdf.rect(50, y-8, 110, 12, 'FD');
-    pdf.setFontSize(12); pdf.setTextColor(0);
+    pdf.rect(50, y - 8, 110, 12, "FD");
+    pdf.setFontSize(12);
+    pdf.setTextColor(0);
     pdf.text("DEROULEMENT DES OBSEQUES", 105, y, { align: "center" });
 
-    y+=20;
-    pdf.setFontSize(10); pdf.setFont("helvetica", "bold");
+    y += 20;
+    pdf.setFontSize(10);
+    pdf.setFont("helvetica", "bold");
     pdf.text("Les Pompes Funèbres Solidaire Perpignan", 105, y, { align: "center" });
-    y+=5;
+    y += 5;
     pdf.setFont("helvetica", "normal");
     pdf.text("ont la tristesse de vous faire part du décès de", 105, y, { align: "center" });
 
-    y+=15;
-    pdf.setFontSize(14); pdf.setFont("helvetica", "bold");
+    y += 15;
+    pdf.setFontSize(14);
+    pdf.setFont("helvetica", "bold");
     const nomComplet = `${getVal("civilite_defunt")} ${getVal("prenom")} ${getVal("nom").toUpperCase()}`;
-    pdf.text(nomComplet, 20, y);
-    
-    y+=10;
-    pdf.setFontSize(10); pdf.setFont("helvetica", "normal");
-    pdf.text(`Né(e) ${getTexteNaissance()} à ${getVal("lieu_naiss")}`, 20, y);
-    y+=6;
-    pdf.text(`Décédé(e) le ${formatDate(getVal("date_deces"))} à ${getVal("lieu_deces")}`, 20, y);
+    pdf.text(pdf.splitTextToSize(nomComplet, contentW), 20, y);
+
+    y += 10;
+    pdf.setFontSize(10);
+    pdf.setFont("helvetica", "normal");
+    const naissText = `Né(e) ${getTexteNaissance()} à ${getVal("lieu_naiss")}`;
+    const decesText = `Décédé(e) le ${formatDate(getVal("date_deces"))} à ${getVal("lieu_deces")}`;
+    const naissLines = pdf.splitTextToSize(naissText, contentW);
+    const decesLines = pdf.splitTextToSize(decesText, contentW);
+    pdf.text(naissLines, 20, y);
+    y += naissLines.length * paragraphLineH + 1;
+    pdf.text(decesLines, 20, y);
+    y += decesLines.length * paragraphLineH + 4;
 
     if (window.logoBase64) {
         try {
             pdf.saveGraphicsState();
             pdf.setGState(new pdf.GState({ opacity: 0.1 }));
-            pdf.addImage(window.logoBase64, 'PNG', 55, 100, 100, 100);
+            pdf.addImage(window.logoBase64, "PNG", 55, 100, 100, 100);
             pdf.restoreGraphicsState();
         } catch (e) {}
     }
 
-    y+=15;
-    let dateCerem = getVal("date_inhumation") || getVal("date_cremation");
-    const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-    let dateStr = "........................";
-    if(dateCerem) {
-        try { dateStr = new Date(dateCerem).toLocaleDateString('fr-FR', options); } catch(e) { dateStr = formatDate(dateCerem); }
+    const instructions = (getVal("proto_instructions") || "").trim();
+    if (instructions) {
+        const introLines = pdf.splitTextToSize(instructions, contentW);
+        ensureSpace(introLines.length * paragraphLineH + 14);
+        pdf.setFont("helvetica", "bold");
+        pdf.text("Message de la famille :", 20, y);
+        y += 6;
+        pdf.setFont("helvetica", "normal");
+        pdf.text(introLines, 20, y);
+        y += introLines.length * paragraphLineH + 6;
     }
-    
-    pdf.setFont("helvetica", "bold");
-    pdf.text(`Les obsèques auront lieu le ${dateStr}, selon le déroulement suivant :`, 20, y);
 
-    y+=10;
-    const startX = 20;
-    const col1W = 30; 
-    const col2W = 140; 
-    const rowH = 10; 
-
-    const drawRow = (heure, action, isHeader=false) => {
-        if(isHeader) {
-            pdf.setFillColor(255, 237, 213);
-            pdf.rect(startX, y, col1W+col2W, 8, 'F');
-            pdf.setFont("helvetica", "bold");
-            pdf.text(action, startX+2, y+5);
-            y += 8;
-        } else {
-            pdf.setDrawColor(150); pdf.setLineWidth(0.2);
-            pdf.rect(startX, y, col1W, rowH);
-            pdf.rect(startX+col1W, y, col2W, rowH);
-            
-            pdf.setFont("helvetica", "bold");
-            pdf.text(heure, startX+2, y+6.5);
-            
-            pdf.setFont("helvetica", "normal");
-            pdf.text(action, startX+col1W+2, y+6.5);
-            y += rowH;
+    let dateCerem = getVal("date_inhumation") || getVal("date_cremation");
+    const options = { weekday: "long", year: "numeric", month: "long", day: "numeric" };
+    let dateStr = "........................";
+    if (dateCerem) {
+        try {
+            dateStr = new Date(dateCerem).toLocaleDateString("fr-FR", options);
+        } catch (e) {
+            dateStr = formatDate(dateCerem);
         }
+    }
+
+    const introCeremonie = pdf.splitTextToSize(
+        `Les obsèques auront lieu le ${dateStr}, selon le déroulement suivant :`,
+        contentW
+    );
+    ensureSpace(introCeremonie.length * paragraphLineH + 10);
+    pdf.setFont("helvetica", "bold");
+    pdf.text(introCeremonie, 20, y);
+    y += introCeremonie.length * paragraphLineH + 4;
+
+    const drawRow = (heure, action, isHeader = false) => {
+        if (isHeader) {
+            ensureSpace(9);
+            pdf.setFillColor(255, 237, 213);
+            pdf.rect(startX, y, col1W + col2W, 8, "F");
+            pdf.setFont("helvetica", "bold");
+            pdf.text(action, startX + 2, y + 5);
+            y += 8;
+            return;
+        }
+
+        const heureLines = (heure || "").trim()
+            ? pdf.splitTextToSize((heure || "").trim(), col1W - 4)
+            : [""];
+        const actionLines = (action || "").trim()
+            ? pdf.splitTextToSize((action || "").trim(), col2W - 4)
+            : [""];
+        const lineCount = Math.max(heureLines.length, actionLines.length, 1);
+        const rowH = Math.max(9, lineCount * tableLineH + 3);
+
+        ensureSpace(rowH);
+        pdf.setDrawColor(150);
+        pdf.setLineWidth(0.2);
+        pdf.rect(startX, y, col1W, rowH);
+        pdf.rect(startX + col1W, y, col2W, rowH);
+
+        pdf.setFont("helvetica", "bold");
+        heureLines.forEach((line, idx) => {
+            pdf.text(line, startX + 2, y + 4.8 + idx * tableLineH);
+        });
+
+        pdf.setFont("helvetica", "normal");
+        actionLines.forEach((line, idx) => {
+            pdf.text(line, startX + col1W + 2, y + 4.8 + idx * tableLineH);
+        });
+        y += rowH;
     };
 
     drawRow("", "Chronologie de la cérémonie", true);
 
-    const planningRows = document.querySelectorAll('#container_planning .planning-row');
-    
-    if(planningRows.length > 0) {
-        planningRows.forEach(row => {
-            const h = row.querySelector('.pl-heure').value;
-            const d = row.querySelector('.pl-desc').value;
+    const planningRows = document.querySelectorAll("#container_planning .planning-row");
+    if (planningRows.length > 0) {
+        planningRows.forEach((row) => {
+            const h = row.querySelector(".pl-heure").value;
+            const d = row.querySelector(".pl-desc").value;
             drawRow(h, d);
         });
     } else {
-        let typeOp = document.getElementById('prestation').value;
-        if(typeOp === 'Crémation') {
+        let typeOp = document.getElementById("prestation").value;
+        if (typeOp === "Crémation") {
             drawRow(getVal("heure_cremation"), `Cérémonie au Crématorium : ${getVal("crematorium_nom")}`);
         } else {
             drawRow(getVal("heure_inhumation"), `Cérémonie au Cimetière : ${getVal("cimetiere_nom")}`);
         }
-    }
-
-    const instructions = getVal('proto_instructions');
-    if(instructions) {
-        y += 5;
-        drawRow("", "Instructions Particulières (Musique / Lectures)", true);
-        const lignes = pdf.splitTextToSize(instructions, 130);
-        lignes.forEach(ligne => {
-            drawRow("", ligne);
-        });
     }
 
     pdf.save(`Deroulement_Obseques_${getVal("nom")}.pdf`);
