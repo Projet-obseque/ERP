@@ -44,6 +44,17 @@ const COMPACT_STORAGE_KEY = "pf_ui_compact";
 let payeursCache = [];
 let currentCompanyProfile = null;
 
+function updateSidebarAgencyLogo(rawUrl) {
+    const logo = document.getElementById('nav-agency-logo');
+    if (!logo) return;
+    const url = String(rawUrl || "").trim();
+    if (!url) {
+        logo.src = "logo.png";
+        return;
+    }
+    logo.src = url;
+}
+
 function updateAgencyLogoPreview(rawUrl) {
     const preview = document.getElementById('agency_logo_preview');
     if (!preview) return;
@@ -72,6 +83,7 @@ function fillAgencySettingsForm(profile) {
     setValue('agency_bank_name', profile?.bank_name);
     setValue('agency_logo_url', profile?.logo_url);
     updateAgencyLogoPreview(profile?.logo_url);
+    updateSidebarAgencyLogo(profile?.logo_url);
 }
 
 function updateCompactToggleLabel() {
@@ -121,6 +133,7 @@ window.sauvegarderParametresAgence = async function() {
         await saveCompanyProfile(payload);
         currentCompanyProfile = { ...(currentCompanyProfile || {}), ...payload };
         updateAgencyLogoPreview(payload.logo_url);
+        updateSidebarAgencyLogo(payload.logo_url);
         alert("✅ Paramètres de l'agence enregistrés.");
     } catch (err) {
         console.error(err);
@@ -142,6 +155,7 @@ window.uploadAgencyLogo = async function() {
         const uploaded = await uploadDocumentToStorage(file, "company_logos");
         if (logoUrlInput) logoUrlInput.value = uploaded.url;
         updateAgencyLogoPreview(uploaded.url);
+        updateSidebarAgencyLogo(uploaded.url);
     } catch (err) {
         console.error(err);
         alert(`Upload du logo impossible.\n\n${formatFirebaseError(err)}`);
@@ -296,6 +310,12 @@ onAuthStateChanged(auth, (user) => {
     if(loader) loader.style.display = 'none';
 
     if (user) {
+        refreshCompanyProfile()
+            .then((profile) => {
+                currentCompanyProfile = profile || {};
+                updateSidebarAgencyLogo(currentCompanyProfile?.logo_url);
+            })
+            .catch(() => updateSidebarAgencyLogo(""));
         document.getElementById('login-screen')?.classList.add('hidden');
         Utils.chargerLogoBase64();
         DB.chargerBaseClients();
@@ -584,9 +604,9 @@ function handleIndexDeepLinks() {
         const params = new URLSearchParams(window.location.search || "");
         const targetView = params.get("view");
         const clientForPrestation = params.get("new_prestation_client");
-        if (targetView === "admin" || clientForPrestation) {
-            window.showSection('admin');
-        }
+        const allowedViews = new Set(["home", "admin", "base", "stock", "settings"]);
+        if (targetView && allowedViews.has(targetView)) window.showSection(targetView);
+        else if (clientForPrestation) window.showSection('admin');
         if (clientForPrestation) {
             window.startNewPrestationFromClient(clientForPrestation, null);
         }

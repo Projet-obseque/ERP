@@ -53,6 +53,13 @@ const safeText = (v) => {
     return s;
 };
 
+function updateSidebarAgencyLogo(rawUrl) {
+    const logo = document.getElementById('nav-agency-logo');
+    if (!logo) return;
+    const url = String(rawUrl || "").trim();
+    logo.src = url || "logo.png";
+}
+
 // --- INIT ---
 onAuthStateChanged(auth, (user) => {
     if (user) {
@@ -85,8 +92,10 @@ async function chargerProfilSociete() {
             logoImg.src = logoUrl;
             logoImg.onload = () => chargerLogoBase64();
         }
+        updateSidebarAgencyLogo(logoUrl);
     } catch (_) {
         companyProfile = { ...DEFAULT_COMPANY_PROFILE };
+        updateSidebarAgencyLogo("");
     }
 }
 
