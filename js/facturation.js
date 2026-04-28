@@ -947,6 +947,14 @@ window.filtrerDepenses = function() {
             dateRegleHtml = `<br><span style="font-size:0.7rem; color:#059669;"><i class="fas fa-check"></i> Réglé le ${new Date(d.date_reglement).toLocaleDateString()}</span>`;
         }
         const detailsHtml = d.details ? `<br><span style="font-size:0.8rem; color:#6b7280; font-style:italic;">${escapeHtml(d.details)}</span>` : "";
+        const traceItems = [];
+        if (d.facture_liee) traceItems.push(`Facture: ${escapeHtml(d.facture_liee)}`);
+        if (d.paye_par) traceItems.push(`Payé par: ${escapeHtml(d.paye_par)}`);
+        if (d.rembourse_a) traceItems.push(`Remboursé à: ${escapeHtml(d.rembourse_a)}`);
+        if (d.traite_par) traceItems.push(`Traité par: ${escapeHtml(d.traite_par)}`);
+        const traceabiliteHtml = traceItems.length
+            ? `<br><span style="font-size:0.75rem; color:#7c3aed; font-weight:600;">${traceItems.join(" | ")}</span>`
+            : "";
         const avanceDateTxt = d.date_avance ? `<br><span style="font-size:0.72rem; color:#0f766e;">Avance le ${new Date(d.date_avance).toLocaleDateString()}</span>` : "";
         const avance = Math.max(0, parseFloat(d.avance_versee) || 0);
         const montant = Math.max(0, parseFloat(d.montant) || 0);
@@ -955,7 +963,7 @@ window.filtrerDepenses = function() {
         const tr = document.createElement('tr'); 
         tr.innerHTML = `
             <td><span style="font-weight:600;">${new Date(d.date).toLocaleDateString()}</span>${dateRegleHtml}</td>
-            <td><strong>${escapeHtml(d.fournisseur)}</strong>${detailsHtml}<br><small style="color:#d97706; font-size:0.75rem;">${escapeHtml(d.categorie)}</small></td>
+            <td><strong>${escapeHtml(d.fournisseur)}</strong>${detailsHtml}${traceabiliteHtml}<br><small style="color:#d97706; font-size:0.75rem;">${escapeHtml(d.categorie)}</small></td>
             <td>${escapeHtml(d.reference||'-')}${d.justificatif_url ? ` <a href="${escapeHtml(d.justificatif_url)}" target="_blank" rel="noopener" title="Voir le justificatif" onclick="event.stopPropagation();" style="color:#0f766e;"><i class="fas fa-paperclip"></i></a>` : ""}</td>
             <td>${badge}</td>
             <td style="text-align:right;">-${montant.toFixed(2)} €</td>
@@ -991,7 +999,11 @@ window.gererDepense = async function() {
         date: document.getElementById('dep_date_fac').value, reference: document.getElementById('dep_ref').value, fournisseur: document.getElementById('dep_fourn').value, 
         details: document.getElementById('dep_details').value, categorie: document.getElementById('dep_cat').value, mode: document.getElementById('dep_mode').value, 
         statut: statutFinal, montant: montant, date_reglement: document.getElementById('dep_date_reg').value,
-        avance_versee: avance, date_avance: document.getElementById('dep_date_avance')?.value || "", reste_a_payer: reste
+        avance_versee: avance, date_avance: document.getElementById('dep_date_avance')?.value || "", reste_a_payer: reste,
+        facture_liee: document.getElementById('dep_facture_liee')?.value || "",
+        paye_par: document.getElementById('dep_paye_par')?.value || "",
+        rembourse_a: document.getElementById('dep_rembourse_a')?.value || "",
+        traite_par: document.getElementById('dep_traite_par')?.value || ""
     }; 
     if(!data.date) return alert("Date requise"); 
     try { 
@@ -1006,6 +1018,14 @@ window.resetFormDepense = function() {
     document.getElementById('form-depense').reset();
     document.getElementById('btn-action-depense').innerHTML="ENREGISTRER";
     if (document.getElementById('dep_reste')) document.getElementById('dep_reste').value = "0.00";
+    const factureLieeEl = document.getElementById('dep_facture_liee');
+    const payeParEl = document.getElementById('dep_paye_par');
+    const rembourseAEl = document.getElementById('dep_rembourse_a');
+    const traiteParEl = document.getElementById('dep_traite_par');
+    if (factureLieeEl) factureLieeEl.value = "";
+    if (payeParEl) payeParEl.value = "";
+    if (rembourseAEl) rembourseAEl.value = "";
+    if (traiteParEl) traiteParEl.value = "";
 };
 window.closeDepenseEditModal = function() {
     document.getElementById('modal-edit-depense')?.classList.add('hidden');
@@ -1065,6 +1085,14 @@ window.openDepenseEditModal = function(id) {
     document.getElementById('dep_modal_fournisseur').value = d.fournisseur || "";
     document.getElementById('dep_modal_ref').value = d.reference || "";
     document.getElementById('dep_modal_montant').value = parseFloat(d.montant || 0).toFixed(2);
+    const modalFactureEl = document.getElementById('dep_modal_facture_liee');
+    const modalPayeParEl = document.getElementById('dep_modal_paye_par');
+    const modalRembourseAEl = document.getElementById('dep_modal_rembourse_a');
+    const modalTraiteParEl = document.getElementById('dep_modal_traite_par');
+    if (modalFactureEl) modalFactureEl.value = d.facture_liee || "";
+    if (modalPayeParEl) modalPayeParEl.value = d.paye_par || "";
+    if (modalRembourseAEl) modalRembourseAEl.value = d.rembourse_a || "";
+    if (modalTraiteParEl) modalTraiteParEl.value = d.traite_par || "";
     document.getElementById('dep_modal_cat').value = d.categorie || "";
     document.getElementById('dep_modal_details').value = d.details || "";
     document.getElementById('dep_modal_statut').value = d.statut || "En attente";
@@ -1126,6 +1154,10 @@ window.saveDepenseFromModal = async function() {
         avance_versee: avance,
         date_avance: document.getElementById('dep_modal_date_avance')?.value || "",
         reste_a_payer: reste,
+        facture_liee: document.getElementById('dep_modal_facture_liee')?.value || "",
+        paye_par: document.getElementById('dep_modal_paye_par')?.value || "",
+        rembourse_a: document.getElementById('dep_modal_rembourse_a')?.value || "",
+        traite_par: document.getElementById('dep_modal_traite_par')?.value || "",
         justificatif_url: ju,
         justificatif_path: jp,
         justificatif_nom: jn
@@ -1324,11 +1356,65 @@ window.calculTotal = function() {
         }
     }
     document.getElementById('reste_a_payer').innerText = lettrage.reste.toFixed(2) + " €";
+    updateTropPercuAction(lettrage.reste);
     document.getElementById('total_display').innerText = total.toFixed(2);
     const lastDateEl = document.getElementById('pay_last_date');
     const mainModeEl = document.getElementById('pay_main_mode');
     if (lastDateEl) lastDateEl.innerText = lettrage.lastDate;
     if (mainModeEl) mainModeEl.innerText = lettrage.mainMode;
+};
+
+function updateTropPercuAction(reste) {
+    const wrap = document.getElementById('trop_percu_action_wrap');
+    if (!wrap) return;
+    const tropPercu = Math.max(0, -(parseFloat(reste) || 0));
+    wrap.classList.toggle('hidden', tropPercu <= 0.01);
+}
+
+window.ouvrirRemboursementTropPercu = function() {
+    const total = parseFloat(document.getElementById('total_display')?.innerText || "0") || 0;
+    const lettrage = summarizePaiements(paiements, total);
+    const tropPercu = Math.max(0, -(lettrage.reste || 0));
+    if (tropPercu <= 0.01) {
+        alert("Aucun trop-perçu détecté sur cette facture.");
+        return;
+    }
+    const ok = confirm(`Créer une dépense de remboursement de ${tropPercu.toFixed(2)} € dans ACHATS ?`);
+    if (!ok) return;
+
+    const numero = String(document.getElementById('doc_numero')?.value || "").trim();
+    const clientNom = String(document.getElementById('client_nom')?.value || "").trim();
+    const defuntNom = String(document.getElementById('defunt_nom')?.value || "").trim();
+    const modePrincipal = String(document.getElementById('pay_main_mode')?.innerText || "").trim();
+    const today = new Date().toISOString().split('T')[0];
+
+    window.switchTab('achats');
+
+    const form = document.getElementById('container-form-depense');
+    if (form && !form.classList.contains('open')) form.classList.add('open');
+
+    const setVal = (id, value) => {
+        const el = document.getElementById(id);
+        if (el) el.value = value;
+    };
+
+    setVal('dep_date_fac', today);
+    setVal('dep_date_reg', today);
+    setVal('dep_fourn', 'Remboursement famille');
+    setVal('dep_ref', numero || '');
+    setVal('dep_montant', tropPercu.toFixed(2));
+    setVal('dep_avance', tropPercu.toFixed(2));
+    setVal('dep_date_avance', today);
+    setVal('dep_cat', 'Remboursement');
+    setVal('dep_statut', 'Réglé');
+    setVal('dep_mode', modePrincipal && modePrincipal !== "-" ? modePrincipal : 'Virement');
+    setVal('dep_facture_liee', numero || '');
+    setVal('dep_paye_par', clientNom || '');
+    setVal('dep_rembourse_a', clientNom || '');
+    setVal('dep_traite_par', '');
+    setVal('dep_details', `Remboursement trop-perçu - Facture ${numero || "-"} - Défunt: ${defuntNom || "-"} - Payeur: ${clientNom || "-"}`);
+
+    window.calculerResteDepense();
 };
 
 async function ensureClientLinkOnSave() {
