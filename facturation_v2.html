@@ -531,6 +531,15 @@
                     <span id="total_display" class="hidden">0</span>
                 </div>
             </div>
+
+            <div style="position:sticky; bottom:16px; z-index:20; display:flex; justify-content:flex-end; margin-top:24px;">
+                <div style="display:flex; gap:10px; flex-wrap:wrap; background:rgba(255,255,255,0.96); border:1px solid #e5e7eb; border-radius:14px; padding:12px 14px; box-shadow:0 10px 25px rgba(15,23,42,0.12); backdrop-filter:blur(8px);">
+                    <button class="btn btn-green" onclick="window.sauvegarderDocument()"><i class="fas fa-save"></i> SAUVEGARDER</button>
+                    <button class="btn btn-grey" onclick="window.genererPDFFacture()"><i class="fas fa-print"></i> IMPRIMER</button>
+                    <button class="btn btn-blue" id="btn-transform-bottom" onclick="window.transformerEnFacture()" style="display:none;"><i class="fas fa-magic"></i> FACTURER</button>
+                    <button class="btn btn-red" id="btn-annuler-doc-bottom" onclick="window.annulerDocument()" style="display:none;"><i class="fas fa-ban"></i> ANNULER</button>
+                </div>
+            </div>
         </div>
     </div>
 
