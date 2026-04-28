@@ -1973,12 +1973,17 @@ window.checkDefuntAuto = function() {
     if (dossier) {
         applyDossierToForm(dossier);
         applyDefuntFromDossierToForm(dossier);
-        // si client vide, on propose le mandant du dossier
         const clientNomEl = document.getElementById('client_nom');
-        if (clientNomEl && !clientNomEl.value) {
-            clientNomEl.value = dossier?.data?.mandant?.nom || "";
-            const foundClient = findClientByName(clientNomEl.value);
-            if (foundClient) applyClientToForm(foundClient);
+        const dossierClientNom = dossier?.data?.mandant?.nom || "";
+        if (clientNomEl) {
+            clientNomEl.value = dossierClientNom;
+            const foundClient = findClientByName(dossierClientNom);
+            if (foundClient) {
+                applyClientToForm(foundClient);
+            } else {
+                const clientIdEl = document.getElementById('client_id');
+                if (clientIdEl) clientIdEl.value = "";
+            }
         }
     }
 };
