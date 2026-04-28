@@ -958,7 +958,9 @@ window.filtrerDepenses = function() {
         const avanceDateTxt = d.date_avance ? `<br><span style="font-size:0.72rem; color:#0f766e;">Avance le ${new Date(d.date_avance).toLocaleDateString()}</span>` : "";
         const avance = Math.max(0, parseFloat(d.avance_versee) || 0);
         const montant = Math.max(0, parseFloat(d.montant) || 0);
-        const reste = Math.max(0, (parseFloat(d.reste_a_payer) || (montant - avance)));
+        const resteStocke = parseFloat(d.reste_a_payer);
+        let reste = Number.isFinite(resteStocke) ? Math.max(0, resteStocke) : Math.max(0, montant - avance);
+        if (String(d.statut || "") === "Réglé") reste = 0;
 
         const tr = document.createElement('tr'); 
         tr.innerHTML = `
@@ -966,8 +968,8 @@ window.filtrerDepenses = function() {
             <td><strong>${escapeHtml(d.fournisseur)}</strong>${detailsHtml}${traceabiliteHtml}<br><small style="color:#d97706; font-size:0.75rem;">${escapeHtml(d.categorie)}</small></td>
             <td>${escapeHtml(d.reference||'-')}${d.justificatif_url ? ` <a href="${escapeHtml(d.justificatif_url)}" target="_blank" rel="noopener" title="Voir le justificatif" onclick="event.stopPropagation();" style="color:#0f766e;"><i class="fas fa-paperclip"></i></a>` : ""}</td>
             <td>${badge}</td>
-            <td style="text-align:right;">-${montant.toFixed(2)} €</td>
-            <td style="text-align:right; color:#0f766e; font-weight:700;">${avance > 0 ? `-${avance.toFixed(2)} €${avanceDateTxt}` : '-'}</td>
+            <td style="text-align:right;">${montant.toFixed(2)} €</td>
+            <td style="text-align:right; color:#0f766e; font-weight:700;">${avance > 0 ? `${avance.toFixed(2)} €${avanceDateTxt}` : '-'}</td>
             <td style="text-align:right; color:${reste > 0 ? '#b45309' : '#16a34a'}; font-weight:700;">${reste.toFixed(2)} €</td>
             <td style="text-align:center;">
                 <button class="btn-icon" onclick="window.openDepenseEditModal('${d.id}')" title="Modifier"><i class="fas fa-edit"></i></button>
