@@ -183,6 +183,12 @@ function getDefuntLabel(defuntNom = "") {
     return "Défunt";
 }
 
+function getDefuntFullName(defunt = {}) {
+    const nom = String(defunt?.nom || "").trim();
+    const prenom = String(defunt?.prenom || "").trim();
+    return [nom, prenom].filter(Boolean).join(" ").trim();
+}
+
 function getPilotagePeriod() {
     const year = document.getElementById('pilotage_year')?.value || "";
     const month = document.getElementById('pilotage_month')?.value || "";
@@ -278,6 +284,10 @@ window.refreshPilotageFinancier = function() {
     setText('stat-depenses-reglees', depensesReglees);
     setText('stat-resultat-treso', resultatTreso);
     setText('stat-a-encaisser', aEncaisser);
+
+    // Le sélecteur de pilotage doit aussi piloter les listes affichées.
+    if (typeof window.filtrerFactures === "function") window.filtrerFactures();
+    if (typeof window.filtrerDepenses === "function") window.filtrerDepenses();
 };
 
 function setEditorActionButtonsVisibility() {
@@ -286,11 +296,17 @@ function setEditorActionButtonsVisibility() {
     const hasId = Boolean(document.getElementById('current_doc_id')?.value);
 
     const btnAnnuler = document.getElementById('btn-annuler-doc');
-    if (!btnAnnuler) return;
+    const btnAnnulerBottom = document.getElementById('btn-annuler-doc-bottom');
+    const btnTransform = document.getElementById('btn-transform');
+    const btnTransformBottom = document.getElementById('btn-transform-bottom');
 
     const canAnnuler = hasId && (type === "FACTURE") && statut !== "ANNULE";
+    const canTransform = String(type || "").toUpperCase() === "DEVIS";
 
-    btnAnnuler.style.display = canAnnuler ? 'inline-flex' : 'none';
+    if (btnAnnuler) btnAnnuler.style.display = canAnnuler ? 'inline-flex' : 'none';
+    if (btnAnnulerBottom) btnAnnulerBottom.style.display = canAnnuler ? 'inline-flex' : 'none';
+    if (btnTransform) btnTransform.style.display = canTransform ? 'inline-flex' : 'none';
+    if (btnTransformBottom) btnTransformBottom.style.display = canTransform ? 'inline-flex' : 'none';
 }
 
 function updateAcquitteParVisibility() {
@@ -1170,7 +1186,6 @@ window.nouveauDocument = function() {
     paiements = [];
     window.renderPaiements();
     window.calculTotal();
-    document.getElementById('btn-transform').style.display = 'none';
     document.getElementById('view-dashboard').classList.add('hidden');
     document.getElementById('view-editor').classList.remove('hidden');
     const lastDateEl = document.getElementById('pay_last_date');
@@ -1254,7 +1269,6 @@ window.chargerDocument = async (id) => {
         const mainModeEl = document.getElementById('pay_main_mode');
         if (lastDateEl) lastDateEl.innerText = lettrage.lastDate;
         if (mainModeEl) mainModeEl.innerText = lettrage.mainMode;
-        document.getElementById('btn-transform').style.display = (document.getElementById('doc_type').value === 'DEVIS') ? 'block' : 'none'; 
         document.getElementById('view-dashboard').classList.add('hidden'); document.getElementById('view-editor').classList.remove('hidden'); 
         setEditorActionButtonsVisibility();
     } 
@@ -1648,7 +1662,8 @@ function applyDefuntFromDossierToForm(dossier) {
     const anneeEl = document.getElementById('defunt_annee_naiss');
     const decesEl = document.getElementById('defunt_date_deces');
 
-    if (nomEl && defunt.nom) nomEl.value = defunt.nom;
+    const defuntFullName = getDefuntFullName(defunt);
+    if (nomEl && defuntFullName) nomEl.value = defuntFullName;
     if (naissEl && (defunt.date_naiss || defunt.naiss)) naissEl.value = defunt.date_naiss || defunt.naiss || "";
     if (anneeEl && defunt.annee_naiss) anneeEl.value = String(defunt.annee_naiss || "");
     if (decesEl && (defunt.date_deces || defunt.deces)) decesEl.value = defunt.date_deces || defunt.deces || "";
@@ -1680,7 +1695,10 @@ function findDossierByNamesForMigration(clientName, defuntName) {
         if (byClient) return byClient;
     }
     if (d) {
-        const byDefunt = cacheDossiersAdmin.find(x => normalizeText(x?.data?.defunt?.nom) === d);
+        const byDefunt = cacheDossiersAdmin.find(x => {
+            const defunt = x?.data?.defunt || {};
+            return normalizeText(getDefuntFullName(defunt)) === d || normalizeText(defunt?.nom) === d;
+        });
         if (byDefunt) return byDefunt;
     }
     return null;
@@ -1849,7 +1867,12 @@ function findDossierByClientName(name) {
 function findDossierByDefuntName(name) {
     const n = String(name || "").trim().toLowerCase();
     if (!n) return null;
-    const matches = cacheDossiersAdmin.filter(d => String(d?.data?.defunt?.nom || "").trim().toLowerCase() === n);
+    const matches = cacheDossiersAdmin.filter(d => {
+        const defunt = d?.data?.defunt || {};
+        const fullName = getDefuntFullName(defunt);
+        const nom = String(defunt?.nom || "").trim();
+        return String(fullName).toLowerCase() === n || nom.toLowerCase() === n;
+    });
     if (matches.length === 0) return null;
     if (matches.length === 1) return matches[0];
     return chooseDossierFromMatches(matches, "defunt");
@@ -1863,7 +1886,7 @@ function chooseDossierFromMatches(matches, contextLabel) {
         const date = d?.data?.date_creation ? new Date(d.data.date_creation).toLocaleDateString('fr-FR') : "-";
         const dossierNum = d?.numero || d?.id || "-";
         const mandant = d?.data?.mandant?.nom || "-";
-        const defunt = d?.data?.defunt?.nom || "-";
+        const defunt = getDefuntFullName(d?.data?.defunt || {}) || d?.data?.defunt?.nom || "-";
         return `${i + 1}) ${dossierNum} | ${date} | Mandant: ${mandant} | Défunt: ${defunt}`;
     });
     const answer = window.prompt(`${title}\nChoisis un numéro:\n\n${lines.join("\n")}\n\n(Annuler = aucun choix)`, "1");
@@ -1918,7 +1941,7 @@ async function chargerSuggestionsClients() {
             cacheDossiersAdmin.push(item);
 
             const mandantNom = data?.mandant?.nom;
-            const defuntNom = data?.defunt?.nom;
+            const defuntNom = getDefuntFullName(data?.defunt || {});
             if (mandantNom) names.add(mandantNom);
             if (defuntNom && dlDefunts) dlDefunts.innerHTML += `<option value="${defuntNom}">`;
         });
