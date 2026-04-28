@@ -189,13 +189,38 @@ function getPilotagePeriod() {
     return { year, month };
 }
 
-function dateInPeriod(dateStr, year, month) {
-    if (!dateStr) return false;
+function getDateParts(dateStr) {
+    if (!dateStr) return null;
     const dt = new Date(dateStr);
-    if (Number.isNaN(dt.getTime())) return false;
-    if (year && String(dt.getFullYear()) !== String(year)) return false;
-    if (month !== "" && String(dt.getMonth()) !== String(month)) return false;
+    if (Number.isNaN(dt.getTime())) return null;
+    return { year: String(dt.getFullYear()), month: String(dt.getMonth()) };
+}
+
+function dateInPeriod(dateStr, year, month) {
+    const parts = getDateParts(dateStr);
+    if (!parts) return false;
+    if (year && parts.year !== String(year)) return false;
+    if (month !== "" && parts.month !== String(month)) return false;
     return true;
+}
+
+function matchesSelectedPilotagePeriod(dateStr) {
+    const { year, month } = getPilotagePeriod();
+    return dateInPeriod(dateStr, year, month);
+}
+
+function syncPilotagePeriodToSectionFilters() {
+    const { year, month } = getPilotagePeriod();
+    const pairs = [
+        ['filter_fac_month', month],
+        ['filter_fac_year', year],
+        ['filter_month', month],
+        ['filter_year', year]
+    ];
+    pairs.forEach(([id, value]) => {
+        const el = document.getElementById(id);
+        if (el) el.value = value;
+    });
 }
 
 window.refreshPilotageFinancier = function() {
@@ -208,11 +233,13 @@ window.refreshPilotageFinancier = function() {
     const lbl = document.getElementById('pilotage-period-label');
     if (lbl) lbl.textContent = `Suivi de l'activité - ${periodTxt}`;
 
-    // 1) CA facturé (factures non annulées, sur date document)
+    syncPilotagePeriodToSectionFilters();
+
+    // 1) CA facturé (factures du mois, sur date document)
     let caFacture = 0;
-    // 2) CA encaissé (somme paiements datés sur période, sur factures non annulées)
+    // 2) CA encaissé (factures du mois intégralement payées)
     let caEncaisse = 0;
-    // 3) À encaisser (reste dû des factures ouvertes, sur période doc)
+    // 3) À encaisser (reste dû des factures du mois encore ouvertes)
     let aEncaisser = 0;
 
     cacheFactures.forEach(d => {
@@ -228,31 +255,18 @@ window.refreshPilotageFinancier = function() {
 
         if (inDocPeriod) {
             caFacture += total;
-            aEncaisser += reste;
-        }
-
-        (d.finalPaiements || []).forEach(p => {
-            if (p?.liberation) return;
-            if (dateInPeriod(p?.date || "", year, month)) {
-                caEncaisse += (parseFloat(p?.montant) || 0);
+            if (statut === "PAYE") {
+                caEncaisse += total;
+            } else {
+                aEncaisser += reste;
             }
-        });
+        }
     });
 
-    // 4) Dépenses réglées sur période
+    // 4) Dépenses du mois (source depenses)
     const depensesReglees = cacheDepenses.reduce((s, x) => {
         const montant = parseFloat(x?.montant) || 0;
-        const avance = parseFloat(x?.avance_versee) || 0;
-        if (x?.statut === "Réglé") {
-            const dRegle = x?.date_reglement || x?.date || "";
-            if (dateInPeriod(dRegle, year, month)) return s + montant;
-            return s;
-        }
-        if (avance > 0) {
-            const dAvance = x?.date_avance || x?.date_reglement || x?.date || "";
-            if (dateInPeriod(dAvance, year, month)) return s + Math.min(avance, montant);
-        }
-        return s;
+        return dateInPeriod(x?.date || "", year, month) ? s + montant : s;
     }, 0);
 
     // 5) Résultat trésorerie
@@ -378,6 +392,7 @@ window.facturesPrevPage = function() {
 function getAEncaisserRows() {
     return cacheFactures
         .filter(d => String(d.finalType || "").toUpperCase() === "FACTURE")
+        .filter(d => matchesSelectedPilotagePeriod(d.finalDate || d.date_creation || ""))
         .map(d => {
             const paye = (d.finalPaiements || []).reduce((s, p) => s + (parseFloat(p?.montant) || 0), 0);
             const reste = (parseFloat(d.finalTotal) || 0) - paye;
@@ -569,9 +584,11 @@ window.setQuickFilter = function(value) {
 
 window.filtrerFactures = function() {
     const term = (document.getElementById('search-facture')?.value || "").toLowerCase();
-    
-    const fMonth = document.getElementById('filter_fac_month')?.value;
-    const fYear = document.getElementById('filter_fac_year')?.value;
+    syncPilotagePeriodToSectionFilters();
+
+    const pilotagePeriod = getPilotagePeriod();
+    const fMonth = pilotagePeriod.month;
+    const fYear = pilotagePeriod.year;
     const fType = document.getElementById('filter_fac_type')?.value;
     const fStatut = document.getElementById('filter_fac_statut')?.value;
     const fSortSelect = document.getElementById('filter_fac_sort')?.value || "";
@@ -610,10 +627,7 @@ window.filtrerFactures = function() {
         const textMatch = numero.includes(term) || client.includes(term) || defunt.includes(term) || dossierNumero.includes(term);
         const typeMatch = !fType || fType === "" || d.finalType === fType;
 
-        let dateMatch = true;
-        const dDate = new Date(d.finalDate);
-        if (fYear && fYear !== "" && dDate.getFullYear() != fYear) dateMatch = false;
-        if (fMonth && fMonth !== "" && dDate.getMonth() != fMonth) dateMatch = false;
+        const dateMatch = dateInPeriod(d.finalDate, fYear, fMonth);
 
         let statutMatch = true;
         if (fStatut && fStatut !== "") {
@@ -680,6 +694,8 @@ window.filtrerFactures = function() {
     if (prevBtn) prevBtn.disabled = facturesTablePage <= 1;
     if (nextBtn) nextBtn.disabled = facturesTablePage >= maxPage;
     
+    renderAEncaisserTable();
+
     if(pageRows.length === 0) {
         tbody.innerHTML = '<tr><td colspan="10" style="text-align:center; color:#94a3b8;">Aucun document trouvé.</td></tr>';
         return;
@@ -852,8 +868,8 @@ window.depensesPrevPage = function() {
 
 window.filtrerDepenses = function() { 
     const term = (document.getElementById('search_depense')?.value || "").toLowerCase();
-    const selMonth = document.getElementById('filter_month')?.value; 
-    const selYear = document.getElementById('filter_year')?.value;   
+    syncPilotagePeriodToSectionFilters();
+    const { month: selMonth, year: selYear } = getPilotagePeriod();
     const cat = document.getElementById('filter_cat')?.value;
     const statut = document.getElementById('filter_statut')?.value;
 
@@ -872,10 +888,7 @@ window.filtrerDepenses = function() {
         const catMatch = !cat || cat === "" || d.categorie === cat;
         const statutMatch = !statut || statut === "" || d.statut === statut;
         
-        let dateMatch = true;
-        const dDate = new Date(d.date);
-        if (selYear && selYear !== "" && dDate.getFullYear() != selYear) dateMatch = false;
-        if (selMonth && selMonth !== "" && dDate.getMonth() != selMonth) dateMatch = false;
+        const dateMatch = dateInPeriod(d.date, selYear, selMonth);
 
         return textMatch && catMatch && statutMatch && dateMatch;
     }); 
